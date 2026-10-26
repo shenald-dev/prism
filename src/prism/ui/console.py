@@ -117,11 +117,12 @@ def render_report(report: BlastRadiusReport):
         console.print()
 
     # 3. Telemetry Radar Card
+    critical_label = "🚨 CRITICAL (Broken Contracts Detected)" if report.all_violations else "🚨 CRITICAL (Extensive Blast Radius)"
     risk_labels = {
         "LOW": "🟢 LOW RISK (Isolated Local Changes)",
         "MODERATE": "🟡 MODERATE (Check Affected Callers)",
         "ELEVATED": "🟠 ELEVATED (Broad Downstream Ripple)",
-        "CRITICAL": "🚨 CRITICAL (Broken Contracts Detected)",
+        "CRITICAL": critical_label,
     }
 
     panel_text = Text()
