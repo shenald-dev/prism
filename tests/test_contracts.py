@@ -1,6 +1,7 @@
 from prism.core.contracts import check_contract_violations
 from prism.parsers.base import CallSite, Symbol
 
+
 def test_detects_missing_required_arguments():
     # func expects 2 required parameters
     sym = Symbol(
@@ -12,7 +13,7 @@ def test_detects_missing_required_arguments():
         params=["username", "email"],
         min_required_params=2,
     )
-    
+
     # Caller only passed 1 argument
     bad_call = CallSite(
         caller_name="login",
@@ -23,7 +24,7 @@ def test_detects_missing_required_arguments():
         kwargs_names=[],
         snippet="create_user('alice')",
     )
-    
+
     violations = check_contract_violations(sym, [bad_call])
     assert len(violations) == 1
     assert violations[0].severity == "CRITICAL"
@@ -41,7 +42,7 @@ def test_detects_excess_positional_arguments():
         min_required_params=1,
         has_varargs=False,
     )
-    
+
     # Caller passed 2 arguments
     bad_call = CallSite(
         caller_name="calc",
@@ -51,7 +52,7 @@ def test_detects_excess_positional_arguments():
         args_count=2,
         snippet="square(2, 4)",
     )
-    
+
     violations = check_contract_violations(sym, [bad_call])
     assert len(violations) == 1
     assert violations[0].severity == "CRITICAL"
@@ -67,7 +68,7 @@ def test_detects_unexpected_keyword_argument():
         params=["url", "timeout"],
         has_kwargs=False,
     )
-    
+
     # Caller passed bogus_kw
     bad_call = CallSite(
         caller_name="worker",
@@ -78,7 +79,7 @@ def test_detects_unexpected_keyword_argument():
         kwargs_names=["bogus_kw"],
         snippet="fetch_data(url, bogus_kw=True)",
     )
-    
+
     violations = check_contract_violations(sym, [bad_call])
     assert len(violations) == 1
     assert violations[0].severity == "HIGH"

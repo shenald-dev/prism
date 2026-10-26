@@ -1,5 +1,7 @@
 import json
+
 from typer.testing import CliRunner
+
 from prism.cli import app
 
 runner = CliRunner()
@@ -12,7 +14,7 @@ def test_cli_version():
 def test_cli_scan_clean_dir(tmp_path):
     f = tmp_path / "app.py"
     f.write_text("def hello():\n    return 'world'\n")
-    
+
     res = runner.invoke(app, ["scan", str(tmp_path), "--all"])
     assert res.exit_code == 0
     assert "Topological Ripple Shockwave" in res.stdout
@@ -21,7 +23,7 @@ def test_cli_scan_clean_dir(tmp_path):
 def test_cli_scan_json_output(tmp_path):
     f = tmp_path / "app.py"
     f.write_text("def calc(x):\n    return x * 2\ndef main():\n    calc(5)\n")
-    
+
     res = runner.invoke(app, ["scan", str(tmp_path), "--all", "--json"])
     assert res.exit_code == 0
     data = json.loads(res.stdout)

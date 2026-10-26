@@ -4,6 +4,7 @@ Parser for JavaScript and TypeScript files extracting functions, signatures, and
 
 import re
 from typing import List, Tuple
+
 from prism.parsers.base import CallSite, ParsedFile, Symbol
 
 # Function declarations

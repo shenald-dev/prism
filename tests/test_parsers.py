@@ -1,5 +1,6 @@
-from prism.parsers.python_parser import parse_python_file
 from prism.parsers.js_ts_parser import parse_js_ts_file
+from prism.parsers.python_parser import parse_python_file
+
 
 def test_python_function_and_call_extraction():
     code = """
@@ -12,16 +13,16 @@ async def process_order(order_id: str, amount: float):
 """
     parsed = parse_python_file("service.py", code)
     assert len(parsed.symbols) == 2
-    
+
     fn_tax = next(s for s in parsed.symbols if s.name == "calculate_tax")
     assert fn_tax.kind == "function"
     assert fn_tax.params == ["amount", "rate"]
     assert fn_tax.min_required_params == 1  # rate has default
-    
+
     fn_order = next(s for s in parsed.symbols if s.name == "process_order")
     assert fn_order.kind == "async_function"
     assert fn_order.min_required_params == 2
-    
+
     assert len(parsed.call_sites) == 1
     call = parsed.call_sites[0]
     assert call.callee_name == "calculate_tax"
@@ -55,14 +56,14 @@ const handleLogin = (req, res) => {
 """
     parsed = parse_js_ts_file("auth.ts", code)
     assert len(parsed.symbols) == 2
-    
+
     auth_sym = next(s for s in parsed.symbols if s.name == "authenticate")
     assert auth_sym.min_required_params == 1
     assert "token" in auth_sym.params
-    
+
     login_sym = next(s for s in parsed.symbols if s.name == "handleLogin")
     assert login_sym.min_required_params == 2
-    
+
     callee_names = [c.callee_name for c in parsed.call_sites]
     assert "verifyToken" in callee_names
     assert "authenticate" in callee_names
