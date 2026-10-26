@@ -13,7 +13,7 @@
 
 *Know what the AI just broke across your entire repository before you commit.*
 
-[![PyPI Version](https://img.shields.io/pypi/v/prism-radar.svg?color=blue&style=flat-square)](https://pypi.org/project/prism-radar/)
+[![GitHub Release](https://img.shields.io/github/v/release/shenald-dev/prism?color=00d4ff&style=flat-square&logo=github)](https://github.com/shenald-dev/prism/releases)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg?style=flat-square)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg?style=flat-square)](LICENSE)
 [![CI Passing](https://img.shields.io/badge/CI-Passing-brightgreen.svg?style=flat-square)](https://github.com/shenald-dev/prism/actions)
@@ -96,18 +96,24 @@ api/v2/orders.py     89     handle_post       Missing required parameter: 'juris
 
 ### Installation
 
-Install via pip:
+Install directly via pip from GitHub:
 
 ```bash
-pip install prism-radar
+pip install "git+https://github.com/shenald-dev/prism.git"
 ```
 
-Or install with `uv` / `pipx`:
+Or install the pre-built wheel directly from the [latest GitHub Release](https://github.com/shenald-dev/prism/releases/latest):
 
 ```bash
-uv tool install prism-radar
+pip install https://github.com/shenald-dev/prism/releases/download/v0.1.0/prism_radar-0.1.0-py3-none-any.whl
+```
+
+Or run via `pipx` / `uv`:
+
+```bash
+pipx install "git+https://github.com/shenald-dev/prism.git"
 # or
-pipx install prism-radar
+uv tool install "git+https://github.com/shenald-dev/prism.git"
 ```
 
 ### Usage
