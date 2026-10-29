@@ -66,11 +66,10 @@ class DependencyGraph:
             - affected_functions: Set of all affected function identifiers
             - affected_files: Set of all affected file paths
         """
-        visited_callers: Set[str] = set()
         affected_functions: Set[str] = {symbol.identifier}
         affected_files: Set[str] = {symbol.file_path}
 
-        def _traverse(current_name: str, depth: int) -> List[CallerNode]:
+        def _traverse(current_name: str, depth: int, visited_callers: Set[str]) -> List[CallerNode]:
             if depth > max_depth:
                 return []
 
@@ -81,7 +80,6 @@ class DependencyGraph:
                 call_id = f"{call.file_path}::{call.caller_name}:{call.line_number}"
                 if call_id in visited_callers:
                     continue
-                visited_callers.add(call_id)
 
                 affected_functions.add(call.caller_identifier)
                 affected_files.add(call.file_path)
@@ -98,11 +96,11 @@ class DependencyGraph:
 
                 # Transitive traversal if caller is a known function
                 if call.caller_name != "<module>":
-                    node.children = _traverse(call.caller_name, depth + 1)
+                    node.children = _traverse(call.caller_name, depth + 1, visited_callers | {call_id})
 
                 nodes.append(node)
 
             return nodes
 
-        blast_tree = _traverse(symbol.name, depth=1)
+        blast_tree = _traverse(symbol.name, depth=1, visited_callers=set())
         return blast_tree, affected_functions, affected_files
