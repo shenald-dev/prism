@@ -52,12 +52,6 @@ class DependencyGraph:
         self.incoming_calls[call.callee_name].append(call)
         self.outgoing_calls[call.caller_identifier].append(call.callee_name)
 
-    def get_symbol(self, identifier: str) -> Optional[Symbol]:
-        return self.symbols_by_id.get(identifier)
-
-    def find_symbols(self, name: str) -> List[Symbol]:
-        return self.symbols_by_name.get(name, [])
-
     def get_direct_callers(self, symbol_name: str) -> List[CallSite]:
         """Return all call sites that directly invoke symbol_name."""
         return self.incoming_calls.get(symbol_name, [])
