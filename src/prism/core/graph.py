@@ -4,7 +4,7 @@ Directed Dependency & Call Graph engine for calculating caller cascades and depe
 
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 from prism.parsers.base import CallSite, Symbol
 
