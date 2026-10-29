@@ -1,6 +1,7 @@
 from prism.core.graph import DependencyGraph
 from prism.parsers.base import CallSite, Symbol
 
+
 def test_graph_diamond():
     graph = DependencyGraph()
     sym_e = Symbol("E", "function", "f.py", 1, 5)

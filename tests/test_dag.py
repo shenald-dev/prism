@@ -1,6 +1,7 @@
 from prism.core.graph import DependencyGraph
 from prism.parsers.base import CallSite, Symbol
 
+
 def test_graph_dag():
     graph = DependencyGraph()
     sym_w = Symbol("W", "function", "f.py", 1, 5)
