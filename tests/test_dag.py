@@ -5,7 +5,6 @@ from prism.parsers.base import CallSite, Symbol
 def test_graph_dag():
     graph = DependencyGraph()
     sym_w = Symbol("W", "function", "f.py", 1, 5)
-    graph.add_symbol(sym_w)
 
     # X calls Y and Z
     graph.add_call_site(CallSite("X", "Y", "f.py", 2))
