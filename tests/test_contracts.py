@@ -84,3 +84,40 @@ def test_detects_unexpected_keyword_argument():
     assert len(violations) == 1
     assert violations[0].severity == "HIGH"
     assert "Unexpected keyword argument 'bogus_kw'" in violations[0].reason
+
+def test_detects_excess_args_for_empty_params():
+    sym = Symbol(
+        name="no_args",
+        kind="function",
+        file_path="auth.py",
+        line_number=1,
+        end_line_number=5,
+        params=[],
+        min_required_params=0,
+    )
+
+    call_pos = CallSite(
+        caller_name="login",
+        callee_name="no_args",
+        file_path="api.py",
+        line_number=10,
+        args_count=1,
+        snippet="no_args(1)"
+    )
+    violations_pos = check_contract_violations(sym, [call_pos])
+    assert len(violations_pos) == 1
+    assert violations_pos[0].severity == "CRITICAL"
+    assert "Excess positional argument" in violations_pos[0].reason
+
+    call_kw = CallSite(
+        caller_name="login",
+        callee_name="no_args",
+        file_path="api.py",
+        line_number=11,
+        kwargs_names=["secret"],
+        snippet="no_args(secret=True)"
+    )
+    violations_kw = check_contract_violations(sym, [call_kw])
+    assert len(violations_kw) == 1
+    assert violations_kw[0].severity == "HIGH"
+    assert "Unexpected keyword argument" in violations_kw[0].reason

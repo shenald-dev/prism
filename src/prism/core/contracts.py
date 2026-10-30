@@ -68,7 +68,7 @@ def check_contract_violations(
 
         # 2. Check for Excess Positional Arguments
         # Caller passed more positional arguments than allowed (unless function has *args)
-        if not symbol.has_varargs and symbol.params:
+        if not symbol.has_varargs:
             max_pos = len(symbol.params)
             if call.args_count > max_pos:
                 violations.append(
@@ -87,7 +87,7 @@ def check_contract_violations(
 
         # 3. Check for Unexpected Keyword Arguments
         # Caller passed a keyword arg that doesn't exist in parameter list (unless **kwargs allowed)
-        if not symbol.has_kwargs and call.kwargs_names and symbol.params:
+        if not symbol.has_kwargs and call.kwargs_names:
             for kw in call.kwargs_names:
                 if kw not in symbol.params:
                     violations.append(
