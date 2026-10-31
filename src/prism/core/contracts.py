@@ -49,22 +49,28 @@ def check_contract_violations(
         total_args_passed = call.args_count + len(call.kwargs_names)
 
         # 1. Check for Missing Required Arguments
-        # Caller passed fewer arguments than the minimum required by definition
-        if symbol.min_required_params > 0 and total_args_passed < symbol.min_required_params:
-            missing_count = symbol.min_required_params - total_args_passed
-            violations.append(
-                ContractViolation(
-                    callee_name=symbol.name,
-                    callee_file=symbol.file_path,
-                    caller_identifier=call.caller_identifier,
-                    caller_file=call.file_path,
-                    caller_line=call.line_number,
-                    severity="CRITICAL",
-                    reason=f"Missing {missing_count} required argument(s). '{symbol.name}' requires at least {symbol.min_required_params} arg(s), but caller passed {total_args_passed}.",
-                    snippet=call.snippet,
-                    suggested_fix=f"Update callsite to pass all required parameters ({', '.join(symbol.params[:symbol.min_required_params])}).",
+        # Caller might have passed enough total arguments, but missed required ones
+        if symbol.min_required_params > 0:
+            required_params = symbol.params[:symbol.min_required_params]
+            provided_req_count = call.args_count
+            for kw in call.kwargs_names:
+                if kw in required_params:
+                    provided_req_count += 1
+            if provided_req_count < symbol.min_required_params:
+                missing_count = symbol.min_required_params - provided_req_count
+                violations.append(
+                    ContractViolation(
+                        callee_name=symbol.name,
+                        callee_file=symbol.file_path,
+                        caller_identifier=call.caller_identifier,
+                        caller_file=call.file_path,
+                        caller_line=call.line_number,
+                        severity="CRITICAL",
+                        reason=f"Missing {missing_count} required argument(s). '{symbol.name}' requires at least {symbol.min_required_params} arg(s), but caller only provided {provided_req_count} matching required parameter(s).",
+                        snippet=call.snippet,
+                        suggested_fix=f"Update callsite to pass all required parameters ({', '.join(symbol.params[:symbol.min_required_params])}).",
+                    )
                 )
-            )
 
         # 2. Check for Excess Positional Arguments
         # Caller passed more positional arguments than allowed (unless function has *args)
