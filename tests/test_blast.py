@@ -6,7 +6,6 @@ from prism.parsers.base import CallSite, Symbol
 def test_isolated_symbol_has_low_risk():
     graph = DependencyGraph()
     sym = Symbol("helper", "function", "utils.py", 1, 5)
-    graph.add_symbol(sym)
 
     report = compute_blast_radius(
         modified_symbols=[sym],
@@ -21,7 +20,6 @@ def test_isolated_symbol_has_low_risk():
 def test_broken_contract_escalates_to_critical():
     graph = DependencyGraph()
     sym = Symbol("auth", "function", "auth.py", 1, 5, params=["token", "secret"], min_required_params=2)
-    graph.add_symbol(sym)
 
     # Broken call (only passes 1 arg)
     graph.add_call_site(CallSite("login", "auth", "api.py", 10, args_count=1))
