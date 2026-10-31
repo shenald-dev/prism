@@ -109,8 +109,6 @@ def scan(
             continue
 
         parsed_files[rel_path] = parsed
-        for sym in parsed.symbols:
-            graph.add_symbol(sym)
         for call in parsed.call_sites:
             graph.add_call_site(call)
 
