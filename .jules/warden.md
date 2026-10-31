@@ -10,3 +10,8 @@
 - **QA & Veto Actions:** None
 - **Entropy Pruned:** Removed dead code (`get_symbol` and `find_symbols`) from `src/prism/core/graph.py` (6 net lines deleted).
 - **Deferred / Blocked:** None
+
+## 2026-10-31 — Lifecycle & Assurance Ledger
+- **QA & Veto Actions:** Identified and fixed a scoring regression in `compute_blast_radius` where transitive callers were improperly calculated (causing inflated impact scores). Added `test_blast_risk_moderate` and `test_blast_risk_elevated` unit tests to protect these boundaries. All 18 tests passing.
+- **Entropy Pruned:** Enforced clean ruff rules.
+- **Deferred / Blocked:** None

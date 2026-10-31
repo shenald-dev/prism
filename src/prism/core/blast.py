@@ -111,10 +111,13 @@ def compute_blast_radius(
 
     # Compute Impact Score (0 - 100)
     raw_score = 0
+    direct_callers_count = sum(len(sb.blast_tree) for sb in symbol_blasts)
+    transitive_callers_count = max(0, len(all_affected_functions) - len(symbol_blasts) - direct_callers_count)
+
     # Direct callers: +6 pts each
-    raw_score += sum(len(sb.blast_tree) * 6 for sb in symbol_blasts)
+    raw_score += direct_callers_count * 6
     # Transitive callers: +3 pts each
-    raw_score += max(0, len(all_affected_functions) - len(symbol_blasts)) * 3
+    raw_score += transitive_callers_count * 3
     # Affected files: +5 pts each
     raw_score += len(all_affected_files) * 5
     # Violations: +25 pts each

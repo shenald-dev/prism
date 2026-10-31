@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- **[Fixed]:** Fixed scoring logic in `compute_blast_radius` where transitive and direct callers were improperly calculated, leading to inflated topological impact scores.
+
+### Added
+- **[Added]:** Added edge-case unit tests to `test_blast.py` to actively verify `MODERATE` and `ELEVATED` risk level scoring thresholds.
+
 ## [0.1.0] - 2026-10-26
 
 ### Added
