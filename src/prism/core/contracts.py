@@ -46,8 +46,6 @@ def check_contract_violations(
         if call.file_path == symbol.file_path and call.line_number == symbol.line_number:
             continue
 
-        total_args_passed = call.args_count + len(call.kwargs_names)
-
         # 1. Check for Missing Required Arguments
         # Caller might have passed enough total arguments, but missed required ones
         if symbol.min_required_params > 0:
