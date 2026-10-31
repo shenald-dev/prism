@@ -9,3 +9,8 @@
 
 - **Learning:** The previous implementation of the `_traverse` algorithm in `DependencyGraph.compute_blast_tree()` utilized a shared `visited_callers` state. This mistakenly caused nodes in a diamond dependency structure or DAG to be skipped when traversed from a different path.
 - **Action:** Graph traversal routines that build trees must track visited state specific to each path recursively (e.g. `visited_callers | {call_id}`) rather than globally, so that all distinct paths in a DAG are fully expanded while still preventing infinite cycles. Two tests were added (`test_dag.py` and `test_diamond.py`) to enforce this correctness.
+
+## 2026-11-01 — Correctness Bug in Contract Invariant Checking
+
+- **Learning:** Contract validation previously checked for missing parameters using `total_args_passed < min_required_params`. This masked missing required arguments if the caller passed enough optional keyword arguments instead.
+- **Action:** Fixed `check_contract_violations` to strictly count only provided positional arguments and keyword arguments that explicitly match the function's required parameters. Test coverage (`test_detects_missing_required_arguments_with_kwargs`) was added. Future additions to invariant checks should similarly isolate checking of required parameters instead of aggregate counts.

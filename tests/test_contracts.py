@@ -30,6 +30,35 @@ def test_detects_missing_required_arguments():
     assert violations[0].severity == "CRITICAL"
     assert "Missing 1 required argument" in violations[0].reason
 
+def test_detects_missing_required_arguments_with_kwargs():
+    # func expects 2 required parameters and 1 optional
+    sym = Symbol(
+        name="create_user",
+        kind="function",
+        file_path="auth.py",
+        line_number=10,
+        end_line_number=20,
+        params=["username", "email", "role"],
+        min_required_params=2,
+    )
+
+    # Caller passed 2 arguments, but one is an optional kwarg, missing 'email'
+    bad_call = CallSite(
+        caller_name="login",
+        callee_name="create_user",
+        file_path="api.py",
+        line_number=45,
+        args_count=1,
+        kwargs_names=["role"],
+        snippet="create_user('alice', role='admin')",
+    )
+
+    violations = check_contract_violations(sym, [bad_call])
+    assert len(violations) == 1
+    assert violations[0].severity == "CRITICAL"
+    assert "Missing 1 required argument" in violations[0].reason
+
+
 def test_detects_excess_positional_arguments():
     # func takes only 1 parameter, no *args
     sym = Symbol(
