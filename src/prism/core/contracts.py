@@ -50,10 +50,13 @@ def check_contract_violations(
         # Caller might have passed enough total arguments, but missed required ones
         if symbol.min_required_params > 0:
             required_params = symbol.params[:symbol.min_required_params]
-            provided_req_count = call.args_count
-            for kw in call.kwargs_names:
-                if kw in required_params:
-                    provided_req_count += 1
+
+            provided_positional = set(symbol.params[:call.args_count])
+            provided_kwargs = set(call.kwargs_names)
+            provided_all = provided_positional.union(provided_kwargs)
+
+            provided_req_count = sum(1 for req in required_params if req in provided_all)
+
             if provided_req_count < symbol.min_required_params:
                 missing_count = symbol.min_required_params - provided_req_count
                 violations.append(

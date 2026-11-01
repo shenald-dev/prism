@@ -114,6 +114,37 @@ def test_detects_unexpected_keyword_argument():
     assert violations[0].severity == "HIGH"
     assert "Unexpected keyword argument 'bogus_kw'" in violations[0].reason
 
+def test_detects_missing_req_with_duplicate_kwarg():
+    # func expects 3 required parameters
+    sym = Symbol(
+        name="foo",
+        kind="function",
+        file_path="foo.py",
+        line_number=1,
+        end_line_number=5,
+        params=["a", "b", "c"],
+        min_required_params=3,
+        has_varargs=False,
+        has_kwargs=False,
+    )
+
+    # Caller passed 2 arguments (a, b) and 'b' as kwarg. 'c' is missing!
+    bad_call = CallSite(
+        caller_name="bar",
+        callee_name="foo",
+        file_path="bar.py",
+        line_number=10,
+        args_count=2,
+        kwargs_names=["b"],
+        snippet="foo(1, 2, b=3)",
+    )
+
+    violations = check_contract_violations(sym, [bad_call])
+    assert len(violations) == 1
+    assert violations[0].severity == "CRITICAL"
+    assert "Missing 1 required argument" in violations[0].reason
+
+
 def test_detects_excess_args_for_empty_params():
     sym = Symbol(
         name="no_args",
