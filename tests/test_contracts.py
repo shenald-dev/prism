@@ -150,3 +150,31 @@ def test_detects_excess_args_for_empty_params():
     assert len(violations_kw) == 1
     assert violations_kw[0].severity == "HIGH"
     assert "Unexpected keyword argument" in violations_kw[0].reason
+
+def test_detects_missing_required_arguments_with_overlapping_kwargs():
+    sym = Symbol(
+        name="foo",
+        kind="function",
+        file_path="foo.py",
+        line_number=1,
+        end_line_number=2,
+        params=["a", "b"],
+        min_required_params=2,
+        has_kwargs=False,
+        has_varargs=False,
+    )
+
+    call = CallSite(
+        caller_name="bar",
+        callee_name="foo",
+        file_path="bar.py",
+        line_number=2,
+        args_count=1,
+        kwargs_names=["a"],
+        snippet="foo(1, a=2)"
+    )
+
+    violations = check_contract_violations(sym, [call])
+    assert len(violations) == 1
+    assert violations[0].severity == "CRITICAL"
+    assert "caller missed: b" in violations[0].reason
