@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **[Fixed]:** Fixed a bug in `check_contract_violations` where passing a keyword argument that overlaps with a positional argument could incorrectly bypass missing argument checks.
 - **[Fixed]:** Fixed scoring logic in `compute_blast_radius` where transitive and direct callers were improperly calculated, leading to inflated topological impact scores.
 
 ### Added

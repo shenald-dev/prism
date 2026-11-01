@@ -15,3 +15,8 @@
 - **QA & Veto Actions:** Identified and fixed a scoring regression in `compute_blast_radius` where transitive callers were improperly calculated (causing inflated impact scores). Added `test_blast_risk_moderate` and `test_blast_risk_elevated` unit tests to protect these boundaries. All 18 tests passing.
 - **Entropy Pruned:** Enforced clean ruff rules.
 - **Deferred / Blocked:** None
+
+## 2026-11-01 — Lifecycle & Assurance Ledger
+- **QA & Veto Actions:** Fixed a contract violation bug introduced in commit 56ebab7 where overlapping keyword and positional arguments would mask missing required argument violations. Added test `test_detects_missing_required_arguments_with_overlapping_kwargs` to prevent regressions. All tests passing.
+- **Entropy Pruned:** Removed scratchpad files (`test_qa_bug.py`, etc.).
+- **Deferred / Blocked:** None
