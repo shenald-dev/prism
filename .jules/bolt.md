@@ -14,3 +14,8 @@
 
 - **Learning:** Contract validation previously checked for missing parameters using `total_args_passed < min_required_params`. This masked missing required arguments if the caller passed enough optional keyword arguments instead.
 - **Action:** Fixed `check_contract_violations` to strictly count only provided positional arguments and keyword arguments that explicitly match the function's required parameters. Test coverage (`test_detects_missing_required_arguments_with_kwargs`) was added. Future additions to invariant checks should similarly isolate checking of required parameters instead of aggregate counts.
+
+## 2026-11-02 — Fix Contract Invariant Checking with Duplicate Arguments
+
+- **Learning:** Contract validation previously counted positional arguments and matched keyword arguments aggregately. This masked missing arguments when a caller erroneously provided the same parameter both positionally and as a keyword argument (double-counting it).
+- **Action:** Fixed `check_contract_violations` to union positional and keyword argument sets to accurately count unique parameters provided against required parameters. Test coverage (`test_detects_missing_req_with_duplicate_kwarg`) was added. Future logic handling argument counts must treat provided parameter names as sets to avoid duplication errors.
