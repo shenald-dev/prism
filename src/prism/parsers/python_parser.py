@@ -160,7 +160,6 @@ class PythonASTVisitor(ast.NodeVisitor):
             has_kwargs=has_kwargs,
             signature=signature,
             docstring=docstring,
-            parent_class=self.current_class,
             is_test=is_test,
         )
         self.symbols.append(symbol)

@@ -365,7 +365,6 @@ strict = false
 fail_on = "CRITICAL"
 max_impact_score = 70
 ignore_symbols = ["__repr__", "__str__", "__init__"]
-ignore_paths = []
 include_tests = true
 default_format = "terminal"
 """
