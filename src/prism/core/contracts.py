@@ -129,7 +129,7 @@ def check_contract_violations(
 
         # 4. Check for Unexpected Keyword Arguments
         if not symbol.has_kwargs and call.kwargs_names:
-            unexpected_kws = [kw for kw in call.kwargs_names if kw not in all_known_params]
+            unexpected_kws = sorted(set(kw for kw in call.kwargs_names if kw not in all_known_params))
             for kw in unexpected_kws:
                 violations.append(
                     ContractViolation(
@@ -152,7 +152,7 @@ def check_contract_violations(
 
         # Fallback check if caller args count is simply less than min_required_params
         if not missing_params and symbol.min_required_params > 0:
-            total_supplied = min(args_count, max_positional) + len(kwargs_set & all_known_params)
+            total_supplied = len(supplied_params)
             if total_supplied < symbol.min_required_params:
                 missing_count = symbol.min_required_params - total_supplied
                 missing_params = set(symbol.params[: symbol.min_required_params]) - supplied_params
