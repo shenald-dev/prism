@@ -23,7 +23,6 @@ class PrismConfig:
     fail_on: str = "CRITICAL"  # "CRITICAL", "ELEVATED", "MODERATE", "ANY"
     max_impact_score: int = 70
     ignore_symbols: List[str] = field(default_factory=lambda: ["__repr__", "__str__", "__init__"])
-    ignore_paths: List[str] = field(default_factory=list)
     include_tests: bool = True
     default_format: str = "terminal"  # "terminal", "json", "sarif", "markdown"
 
@@ -40,8 +39,6 @@ class PrismConfig:
             config.max_impact_score = int(data["max_impact_score"])
         if "ignore_symbols" in data and isinstance(data["ignore_symbols"], list):
             config.ignore_symbols = [str(s) for s in data["ignore_symbols"]]
-        if "ignore_paths" in data and isinstance(data["ignore_paths"], list):
-            config.ignore_paths = [str(p) for p in data["ignore_paths"]]
         if "include_tests" in data:
             config.include_tests = bool(data["include_tests"])
         if "default_format" in data:

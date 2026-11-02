@@ -24,7 +24,6 @@ class Symbol:
     has_kwargs: bool = False
     signature: str = ""
     docstring: Optional[str] = None
-    parent_class: Optional[str] = None
     is_test: bool = False
 
     @property
