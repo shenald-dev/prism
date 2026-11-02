@@ -38,3 +38,4 @@ htmlcov/
 .mypy_cache/
 .cache/
 .prism/
+.jules/

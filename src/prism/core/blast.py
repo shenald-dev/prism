@@ -1,13 +1,16 @@
 """
 Blast Radius calculation engine.
-Computes impact scores, ripple shockwaves, and overall risk levels across repositories.
+Computes impact scores, ripple shockwaves, test impact, and overall risk levels across repositories.
 """
 
 from dataclasses import dataclass, field
-from typing import List, Set
+from typing import Any, Dict, List, Optional, Set
 
+from prism.core.config import PrismConfig
 from prism.core.contracts import ContractViolation, check_contract_violations
 from prism.core.graph import CallerNode, DependencyGraph
+from prism.core.sarif import export_sarif
+from prism.core.tests import TestImpactSummary, analyze_test_impact
 from prism.parsers.base import Symbol
 
 
@@ -31,6 +34,7 @@ class BlastRadiusReport:
     impact_score: int = 0
     risk_level: str = "LOW"  # LOW, MODERATE, ELEVATED, CRITICAL
     color: str = "green"
+    test_impact: Optional[TestImpactSummary] = None
 
     @property
     def modified_symbols_count(self) -> int:
@@ -47,8 +51,8 @@ class BlastRadiusReport:
     def transitive_callers_count(self) -> int:
         return max(0, len(self.all_affected_functions) - self.modified_symbols_count - self.direct_callers_count)
 
-    def to_dict(self):
-        return {
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
             "impact_score": self.impact_score,
             "risk_level": self.risk_level,
             "duration_seconds": round(self.duration_seconds, 3),
@@ -75,6 +79,66 @@ class BlastRadiusReport:
                 for sb in self.symbol_blasts
             ],
         }
+        if self.test_impact:
+            result["test_impact"] = self.test_impact.to_dict()
+        return result
+
+    def to_sarif(self) -> Dict[str, Any]:
+        return export_sarif(self.all_violations)
+
+    def to_markdown(self) -> str:
+        """Render a GitHub Flavored Markdown report for CI step summaries and PR comments."""
+        risk_emojis = {
+            "LOW": "🟢",
+            "MODERATE": "🟡",
+            "ELEVATED": "🟠",
+            "CRITICAL": "🚨",
+        }
+        emoji = risk_emojis.get(self.risk_level, "💎")
+
+        lines = [
+            f"## {emoji} PRISM: Topological Blast Radius Report",
+            f"**Impact Score:** `{self.impact_score}/100` | **Risk Level:** `{self.risk_level}` | **Scan Latency:** `{self.duration_seconds:.3f}s`",
+            "",
+            "| Metric | Count |",
+            "| :--- | :--- |",
+            f"| 📦 **Modified Symbols** | {self.modified_symbols_count} |",
+            f"| 🎯 **Direct Callers (L1)** | {self.direct_callers_count} |",
+            f"| 🌊 **Transitive Callers** | {self.transitive_callers_count} |",
+            f"| 📁 **Affected Files** | {len(self.all_affected_files)} |",
+            f"| 🚨 **Contract Violations** | {len(self.all_violations)} |",
+            "",
+        ]
+
+        if self.all_violations:
+            lines.extend([
+                "### 🚨 Contract Invariant Violations",
+                "",
+                "| Severity | Caller Location | Target Function | Diagnosis | Suggested Fix |",
+                "| :---: | :--- | :--- | :--- | :--- |",
+            ])
+            for v in self.all_violations:
+                sev_badge = "🔴 **CRITICAL**" if v.severity == "CRITICAL" else "🟡 **HIGH**"
+                loc = f"`{v.caller_file}:{v.caller_line}`"
+                target = f"`{v.callee_name}`"
+                diag = v.reason.replace("|", "\\|")
+                fix = v.suggested_fix.replace("|", "\\|")
+                lines.append(f"| {sev_badge} | {loc} | {target} | {diag} | {fix} |")
+            lines.append("")
+
+        if self.test_impact:
+            lines.extend([
+                "### 🧪 Test Impact Radar",
+                f"- **Impacted Test Files:** `{len(self.test_impact.impacted_test_files)}`",
+                f"- **Impacted Test Cases:** `{len(self.test_impact.impacted_test_cases)}`",
+            ])
+            if self.test_impact.recommended_command:
+                lines.append(f"- **Recommended Test Command:** `{self.test_impact.recommended_command}`")
+            if self.test_impact.untested_symbols:
+                lines.append(f"- ⚠️ **Untested Symbols:** {', '.join(f'`{s}`' for s in self.test_impact.untested_symbols)}")
+            lines.append("")
+
+        return "\n".join(lines)
 
 
 def compute_blast_radius(
@@ -83,16 +147,27 @@ def compute_blast_radius(
     total_files_scanned: int,
     duration_seconds: float,
     max_depth: int = 5,
+    include_tests: bool = True,
+    config: Optional[PrismConfig] = None,
 ) -> BlastRadiusReport:
     """Analyze modified symbols and compute comprehensive blast radius report."""
+    cfg = config or PrismConfig()
+    effective_depth = max_depth if max_depth != 5 else cfg.max_depth
+
+    # Filter out ignored symbols if defined
+    active_symbols = [
+        sym for sym in modified_symbols
+        if sym.name not in cfg.ignore_symbols
+    ]
+
     symbol_blasts = []
     all_affected_functions: Set[str] = set()
     all_affected_files: Set[str] = set()
     all_violations: List[ContractViolation] = []
 
-    for sym in modified_symbols:
-        tree, affected_funcs, affected_files = graph.compute_blast_tree(sym, max_depth=max_depth)
-        incoming_calls = graph.get_direct_callers(sym.name)
+    for sym in active_symbols:
+        tree, affected_funcs, affected_files = graph.compute_blast_tree(sym, max_depth=effective_depth)
+        incoming_calls = graph.get_direct_callers(sym)
         violations = check_contract_violations(sym, incoming_calls)
 
         all_affected_functions.update(affected_funcs)
@@ -140,6 +215,14 @@ def compute_blast_radius(
         risk_level = "LOW"
         color = "green"
 
+    test_impact = None
+    if include_tests:
+        test_impact = analyze_test_impact(
+            modified_symbols=active_symbols,
+            all_affected_functions=all_affected_functions,
+            all_affected_files=all_affected_files,
+        )
+
     return BlastRadiusReport(
         symbol_blasts=symbol_blasts,
         total_files_scanned=total_files_scanned,
@@ -150,4 +233,5 @@ def compute_blast_radius(
         impact_score=impact_score,
         risk_level=risk_level,
         color=color,
+        test_impact=test_impact,
     )

@@ -7,13 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
-
-### Fixed
-- **[Fixed]:** Fixed scoring logic in `compute_blast_radius` where transitive and direct callers were improperly calculated, leading to inflated topological impact scores.
+## [1.0.0] - 2026-11-02
 
 ### Added
-- **[Added]:** Added edge-case unit tests to `test_blast.py` to actively verify `MODERATE` and `ELEVATED` risk level scoring thresholds.
+- **Python 3.8–3.12 Contract Invariant Engine**:
+  - Full structural AST support for positional-only parameters (`/`) and keyword-only parameters (`*`).
+  - Detection of positional-only arguments improperly passed as keyword arguments.
+  - Detection of duplicate parameter bindings (receiving both positional and keyword values).
+  - Accurate constructor signature extraction for standard Python classes and `@dataclass` definitions.
+- **Import-Aware Scoped Dependency Graph**:
+  - Full AST `Import` and `ImportFrom` visitor with alias tracking and relative import resolution.
+  - ES6 module import parsing for TypeScript/JavaScript (`import { foo } from './bar'`).
+  - Qualified call-site callee resolution preventing cross-module name collisions.
+- **Intelligent Test Impact Radar (`prism test-impact`)**:
+  - Traces modified symbols directly and transitively to impacted test suites and test cases.
+  - Automatically identifies test coverage gaps (modified symbols with 0 automated tests).
+  - Recommends the exact test execution command and offers instantaneous test execution (`--run-tests` / `prism test-impact --run`).
+- **Autonomous Agent Remediation Generator (`prism explain` / `prism prompt`)**:
+  - High-density, zero-hallucination prompt generator tailored for AI coding agents (Claude Code, Cursor, Copilot, Cline, Aider, Devin).
+  - Outputs exact file paths, line numbers, caller source snippets, diagnoses, and actionable code fixes.
+- **Enterprise Multi-Format Reporting**:
+  - Full SARIF 2.1.0 exporter (`--format sarif`) for direct integration with GitHub Code Scanning inline PR annotations.
+  - GitHub Flavored Markdown summary generator (`--format markdown`) for `$GITHUB_STEP_SUMMARY` and PR comment automation.
+  - Structured file export option (`--output / -o`).
+- **Advanced Git Revision & CI Diffing**:
+  - Support for `--base`, `--head`, `--staged`, and `--commit <sha>` diff targets.
+  - Auto-detection of GitHub Actions PR base branches (`GITHUB_BASE_REF`) for clean checkouts in CI workflows.
+- **Project Configuration & Policy Engine (`prism.toml`)**:
+  - Added `prism init` command to bootstrap starter configuration.
+  - Reads configuration from `prism.toml` or `pyproject.toml` (`[tool.prism]`).
+  - Configurable depth, failure thresholds (`fail_on = "CRITICAL" | "ELEVATED" | "MODERATE" | "ANY"`), ignored symbols, and ignored paths.
+- **Comprehensive Test Suite**:
+  - 32 new unit and integration tests covering CLI v1, SARIF generation, remediation prompts, test impact, advanced git diffs, and complex contract invariants (53 tests total, 88% overall test coverage).
+
+### Changed
+- Promoted package version to `1.0.0` with `Production/Stable` classification.
+- Upgraded terminal UI telemetry card to display test impact metrics and test caller branch badges.
+- Default file discovery now includes test directories for comprehensive shockwave impact tracing.
+
+### Fixed
+- Fixed scoring logic in `compute_blast_radius` where transitive and direct callers were improperly calculated.
+- Fixed regex parsing for multi-line JavaScript/TypeScript function declarations and callsites.
+- Fixed argument counting for callsites containing nested object/array literals.
+
+---
 
 ## [0.1.0] - 2026-10-26
 

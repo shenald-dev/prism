@@ -46,6 +46,10 @@ def _populate_tree_nodes(parent_tree: Tree, nodes: list[CallerNode], violations_
             badge = "[bold white on red] ⚠️ BROKEN CONTRACT [/]"
             style = "bold red"
             label = f"{badge} [bold red]{node.caller_symbol}[/] [dim]({node.file_path}:{node.line_number})[/]\n  [red]> {violations_map[key]}[/]"
+        elif node.is_test:
+            badge = "[bold purple][🧪 Test Caller][/]"
+            label = f"{badge} [purple]{node.caller_symbol}[/] [dim]({node.file_path}:{node.line_number})[/]"
+            style = "purple"
         elif node.depth == 1:
             badge = "[bold cyan][L1 Direct][/]"
             label = f"{badge} [cyan]{node.caller_symbol}[/] [dim]({node.file_path}:{node.line_number})[/]"
@@ -66,8 +70,8 @@ def render_report(report: BlastRadiusReport):
         console.print(
             Panel(
                 f"[bold green]✨ ZERO BLAST RADIUS IMPACT[/]\n\n"
-                f"[dim]Scanned {report.total_files_scanned} files in {report.duration_seconds:.2f}s.[/]\n"
-                f"No uncommitted modified symbols or broken contracts found.",
+                f"[dim]Scanned {report.total_files_scanned} files in {report.duration_seconds:.3f}s.[/]\n"
+                f"No modified symbols or broken contracts found.",
                 title="[bold green]STATUS: 💎 ISOLATED & PRISTINE[/]",
                 border_style="green",
             )
@@ -81,7 +85,11 @@ def render_report(report: BlastRadiusReport):
             f"{v.caller_file}:{v.caller_line}": v.reason for v in sb.violations
         }
 
-        root_label = f"[bold white]💎 MODIFIED:[/] [bold yellow]{sb.symbol.name}[/] [dim]({sb.symbol.file_path}:{sb.symbol.line_number})[/]\n  [dim cyan]> {sb.symbol.signature}[/]"
+        root_label = (
+            f"[bold white]💎 MODIFIED:[/] [bold yellow]{sb.symbol.name}[/] "
+            f"[dim]({sb.symbol.file_path}:{sb.symbol.line_number})[/]\n"
+            f"  [dim cyan]> {sb.symbol.signature}[/]"
+        )
         tree = Tree(root_label, guide_style="cyan")
 
         if not sb.blast_tree:
@@ -95,7 +103,7 @@ def render_report(report: BlastRadiusReport):
     # 2. Render Contract Violations Table (if any)
     if report.all_violations:
         table = Table(
-            title="[bold red]🚨 Contract Violations & Signature Mismatches[/]",
+            title=f"[bold red]🚨 Contract Violations & Signature Mismatches ({len(report.all_violations)})[/]",
             border_style="red",
             header_style="bold red",
             show_lines=True,
@@ -110,13 +118,47 @@ def render_report(report: BlastRadiusReport):
             loc = f"{v.caller_file}:{v.caller_line}"
             desc = f"[bold]{v.reason}[/]"
             if v.snippet:
-                desc += f"\n[dim red]> {v.snippet[:60]}[/]"
+                desc += f"\n[dim red]> {v.snippet[:70]}[/]"
             table.add_row(sev_badge, loc, desc, v.suggested_fix)
 
         console.print(table)
         console.print()
 
-    # 3. Telemetry Radar Card
+    # 3. Render Test Impact Panel (if test analysis available)
+    if report.test_impact and (report.test_impact.impacted_test_cases or report.test_impact.untested_symbols):
+        test_text = Text()
+        if report.test_impact.impacted_test_cases:
+            test_text.append(f"• Impacted Test Files: {len(report.test_impact.impacted_test_files)}\n", style="bold")
+            test_text.append(f"• Impacted Test Cases: {len(report.test_impact.impacted_test_cases)}\n", style="cyan")
+            if report.test_impact.recommended_command:
+                test_text.append(f"• Recommended Run: {report.test_impact.recommended_command}\n", style="bold green")
+
+        if report.test_impact.untested_symbols:
+            test_text.append(
+                f"\n⚠️  Untested Modified Symbols ({len(report.test_impact.untested_symbols)}):\n",
+                style="bold yellow",
+            )
+            for s in report.test_impact.untested_symbols[:5]:
+                test_text.append(f"   - {s}\n", style="dim yellow")
+            if len(report.test_impact.untested_symbols) > 5:
+                test_text.append(f"   ... and {len(report.test_impact.untested_symbols) - 5} more\n", style="dim")
+
+        if report.test_impact.execution_result:
+            status_style = "bold green" if report.test_impact.execution_success else "bold red"
+            test_text.append("\nTest Execution Result:\n", style=status_style)
+            test_text.append(f"{report.test_impact.execution_result}\n", style="dim")
+
+        console.print(
+            Panel(
+                test_text,
+                title="[bold purple]🧪 TEST IMPACT RADAR[/]",
+                border_style="purple",
+                padding=(0, 2),
+            )
+        )
+        console.print()
+
+    # 4. Telemetry Radar Card
     critical_label = "🚨 CRITICAL (Broken Contracts Detected)" if report.all_violations else "🚨 CRITICAL (Extensive Blast Radius)"
     risk_labels = {
         "LOW": "🟢 LOW RISK (Isolated Local Changes)",
@@ -134,8 +176,12 @@ def render_report(report: BlastRadiusReport):
     panel_text.append(f"• Direct Callers (L1): {report.direct_callers_count}    ", style="cyan" if report.direct_callers_count else "dim")
     panel_text.append(f"• Transitive Callers: {report.transitive_callers_count}    ", style="dim")
     panel_text.append(f"• Affected Files: {len(report.all_affected_files)}\n", style="dim")
-    panel_text.append(f"• Broken Contracts: {len(report.all_violations)}\n\n", style="bold red" if report.all_violations else "dim green")
-    panel_text.append(f"Analyzed {report.total_files_scanned} files in {report.duration_seconds:.2f}s.", style="dim")
+    panel_text.append(f"• Broken Contracts: {len(report.all_violations)}    ", style="bold red" if report.all_violations else "dim green")
+    if report.test_impact:
+        panel_text.append(f"• Impacted Tests: {len(report.test_impact.impacted_test_cases)}\n\n", style="purple" if report.test_impact.impacted_test_cases else "dim")
+    else:
+        panel_text.append("\n\n")
+    panel_text.append(f"Analyzed {report.total_files_scanned} files in {report.duration_seconds:.3f}s.", style="dim")
 
     console.print(
         Panel(

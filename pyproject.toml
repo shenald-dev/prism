@@ -1,16 +1,16 @@
 [project]
 name = "prism-radar"
-version = "0.1.0"
+version = "1.0.0"
 description = "💎 Real-time topological blast radius and contract analysis for AI-generated code. Know what will break before you commit."
 readme = "README.md"
 authors = [
-    { name = "shenald-dev", email = "bot@shenald.dev" }
+    { name = "shenald-dev", email = "shenald@users.noreply.github.com" }
 ]
 license = { text = "MIT" }
 requires-python = ">=3.10"
 keywords = ["ai", "vibe-coding", "blast-radius", "code-analysis", "ast", "cli", "dependency-graph", "contracts", "git-diff"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",

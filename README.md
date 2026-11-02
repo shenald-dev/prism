@@ -23,11 +23,12 @@
 ---
 
 [The Problem](#-the-problem) •
-[How It Works](#-how-it-works) •
+[Key Highlights](#-key-highlights) •
 [Quick Start](#-quick-start) •
 [Terminal UI](#-terminal-ui) •
-[CI / CD Enforcement](#-ci--pre-commit-enforcement) •
-[Agent Integration](#-agent--llm-loop-mode) •
+[CLI Commands](#-cli-commands) •
+[Agent Loop Mode](#-agent--llm-loop-mode) •
+[CI / CD Enforcement](#-ci--github-actions-enforcement) •
 [Architecture](#-architecture)
 
 ---
@@ -36,7 +37,7 @@
 
 ## 💥 The Problem
 
-In the era of vibe coding and autonomous AI agents (**Cursor, Claude Code, Copilot, Cline, Aider, Jules**), AI writes code at 1,000 WPM.
+In the era of vibe coding and autonomous AI agents (**Cursor, Claude Code, Copilot, Cline, Aider**), AI writes code at 1,000 WPM.
 
 **However, LLMs suffer from severe tunnel vision:**
 - An AI refactors `authenticate_user(user_id, token, tenant_id=None)` to require `org_id` as a second parameter.
@@ -48,17 +49,19 @@ In the era of vibe coding and autonomous AI agents (**Cursor, Claude Code, Copil
 
 Traditional typecheckers (mypy, tsc) require strict types everywhere or take seconds to recompile your whole project. Unit tests only catch downstream breakage if you already wrote tests for every transitive caller.
 
-**`prism` is a zero-latency topological radar.** It scans your uncommitted git diff (`git diff HEAD`), builds an in-memory dependency graph, traces the ripple shockwave up to N hops deep, and runs contract invariant checks on callers—all in **<50ms**.
+**`prism` is a zero-latency topological radar.** It scans your uncommitted git diff (`git diff HEAD`) or branch diff, builds an in-memory dependency graph, traces the ripple shockwave up to N hops deep, identifies impacted tests, and runs contract invariant checks on callers—all in **<50ms**.
 
 ---
 
 ## ⚡ Key Highlights
 
 - 🌊 **Topological Ripple Shockwave:** Computes the multi-hop transitive caller tree of every symbol touched in your git working tree.
-- 🛡️ **Contract Invariant Checking:** Flags missing required arguments, excess positional parameters, and unexpected keyword arguments across Python & TypeScript/JavaScript.
-- 🚦 **Topological Threat Score (0–100):** Categorizes risk into `LOW`, `MODERATE`, `ELEVATED`, or `CRITICAL` based on graph depth, blast radius width, and contract violations.
+- 🛡️ **Advanced Contract Invariant Checking:** Flags missing required arguments, excess positional parameters, unexpected keyword arguments, positional-only violations (`/`), duplicate bindings, and dataclass signatures across Python 3.8–3.12 and TypeScript/JavaScript.
+- 🧪 **Intelligent Test Impact Radar:** Pinpoints exact test files and test functions that directly or transitively cover modified code, flags untested modified symbols, and runs only affected tests with one command.
+- 🤖 **Agent Remediation Prompt Generator (`prism explain`):** Synthesizes high-density, zero-hallucination prompt context and exact code fixes for autonomous coding agents (Claude Code, Cursor, Copilot, Aider, Devin).
+- 📊 **Multi-Format Enterprise Reporting:** Emits Rich terminal UI, machine-readable JSON, GitHub Flavored Markdown (`$GITHUB_STEP_SUMMARY`), or SARIF 2.1.0 for GitHub Code Scanning inline PR annotations.
+- 🔀 **Revision & CI Diffing:** Analyze uncommitted changes, staged changes (`--staged`), commits (`--commit`), or base branches (`--base origin/main`).
 - ⚡ **Sub-50ms Zero-Config Engine:** Pure AST visitor with zero heavy daemon overhead. Runs instantaneously on commit hooks.
-- 🤖 **Machine-Readable JSON Mode:** Designed for AI coding loops. Pipe structured JSON diagnostics back to your AI agent so it can self-heal callers before you ever review the code.
 
 ---
 
@@ -67,27 +70,47 @@ Traditional typecheckers (mypy, tsc) require strict types everywhere or take sec
 When you run `prism scan` after an AI edits your code:
 
 ```text
-💎 PRISM: TOPOLOGICAL BLAST RADIUS REPORT
-Scan target: . | Engine: AST Invariant Graph | Latency: 0.034s
+┌─────────────────────────────────────────────────────────────────────────────┐
+│     ____  ____  ___ ____  __  __                                            │
+│    |  _ \|  _ \|_ _/ ___||  \/  |                                           │
+│    | |_) | |_) || |\___ \| |\/| |                                           │
+│    |  __/|  _ < | | ___) | |  | |                                           │
+│    |_|   |_| \_\___|____/|_|  |_|                                           │
+│    💎 Topological Blast Radius & Invariant Radar • Zero Bloat               │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-─── TOPOLOGICAL IMPACT ────────────────────────────────────────────────────────
-Impact Score: 85/100  [CRITICAL RISK - CONTRACTS BROKEN]
-Modified Symbols: 1   Affected Downstream Callers: 3   Max Depth: 2
+📡 Topological Ripple Shockwave:
 
-─── TOPOLOGICAL RIPPLE SHOCKWAVE ──────────────────────────────────────────────
-📦 calculate_tax (tax.py:12)
-├── ⚠️ order_service.py:45 -> process_checkout (depth 1)
-│   └── ⚠️ checkout_worker.py:18 -> run_job (depth 2)
-└── ⚠️ api/v2/orders.py:89 -> handle_post (depth 1)
+💎 MODIFIED: calculate_tax (tax.py:12)
+  > def calculate_tax(amount, rate, jurisdiction)
+├──  ⚠️ BROKEN CONTRACT  order_service.py::process_checkout (order_service.py:45)
+│     > Missing 1 required argument(s): 'jurisdiction'.
+│   └── [L2 Transitive] checkout_worker.py::run_job (checkout_worker.py:18)
+├── [🧪 Test Caller] tests/test_orders.py::test_tax_calculation (tests/test_orders.py:22)
+└──  ⚠️ BROKEN CONTRACT  api/v2/orders.py::handle_post (api/v2/orders.py:89)
+      > Missing 1 required argument(s): 'jurisdiction'.
 
-─── CONTRACT VIOLATIONS (3) ───────────────────────────────────────────────────
-FILE                 LINE   CALLER            DIAGNOSIS
-───────────────────  ─────  ────────────────  ──────────────────────────────────
-order_service.py     45     process_checkout  Missing required parameter: 'jurisdiction'
-checkout_worker.py   18     run_job           Unexpected keyword argument: 'tax_exempt'
-api/v2/orders.py     89     handle_post       Missing required parameter: 'jurisdiction'
+🚨 Contract Violations & Signature Mismatches (2)
+┌────────────┬──────────────────────────────┬──────────────────────────────┬────────────────────────────────┐
+│    Sev     │ Caller Location              │ Contract Violation Reason    │ Suggested Fix                  │
+├────────────┼──────────────────────────────┼──────────────────────────────┼────────────────────────────────┤
+│  CRITICAL  │ order_service.py:45          │ Missing 1 required arg...    │ Pass 'jurisdiction' parameter  │
+│  CRITICAL  │ api/v2/orders.py:89          │ Missing 1 required arg...    │ Pass 'jurisdiction' parameter  │
+└────────────┴──────────────────────────────┴──────────────────────────────┴────────────────────────────────┘
 
-💥 Result: 3 callers will crash at runtime. Fix callers before committing.
+┌─────────────────────────── 🧪 TEST IMPACT RADAR ────────────────────────────┐
+│  • Impacted Test Files: 1                                                   │
+│  • Impacted Test Cases: 1                                                   │
+│  • Recommended Run: pytest tests/test_orders.py                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────── 📊 TOPOLOGICAL BLAST RADAR TELEMETRY ────────────────────┐
+│  Blast Impact Score: 85/100 [CRITICAL]                                      │
+│  Assessment: 🚨 CRITICAL (Broken Contracts Detected)                        │
+│  • Modified Symbols: 1    • Direct Callers: 2    • Transitive: 1            │
+│  • Broken Contracts: 2    • Impacted Tests: 1                               │
+│  Analyzed 24 files in 0.038s.                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -105,7 +128,7 @@ pip install "git+https://github.com/shenald-dev/prism.git"
 Or install the pre-built wheel directly from the [latest GitHub Release](https://github.com/shenald-dev/prism/releases/latest):
 
 ```bash
-pip install https://github.com/shenald-dev/prism/releases/download/v0.1.0/prism_radar-0.1.0-py3-none-any.whl
+pip install https://github.com/shenald-dev/prism/releases/download/v1.0.0/prism_radar-1.0.0-py3-none-any.whl
 ```
 
 Or run via `pipx` / `uv`:
@@ -116,65 +139,134 @@ pipx install "git+https://github.com/shenald-dev/prism.git"
 uv tool install "git+https://github.com/shenald-dev/prism.git"
 ```
 
-### Usage
+---
 
-#### 1. Scan Uncommitted Changes (Default)
-Inspect what your current git working tree (unstaged + staged changes) impacts:
+## 🛠️ CLI Commands
+
+### 1. `prism scan` (Core Blast & Contract Radar)
+
+Scan your current git working tree (unstaged + staged changes):
 
 ```bash
 prism scan
 ```
 
-#### 2. Scan Entire Codebase
-Analyze all symbols across the entire repository:
+Scan against a base branch (e.g. in PRs or feature branches):
 
 ```bash
-prism scan --all
+prism scan --base origin/main
 ```
 
-#### 3. Strict Mode for Pre-Commit & CI
-Exit with non-zero code (`1`) if any contract violation or high risk is detected:
+Scan staged changes only:
+
+```bash
+prism scan --staged
+```
+
+Run in strict mode (fails with exit code `1` if broken contracts or high risk are found):
 
 ```bash
 prism scan --strict
 ```
 
-#### 4. JSON Output for AI Pipelines
-Generate clean JSON diagnostics for autonomous agents:
+Export results as SARIF 2.1.0 for GitHub Code Scanning:
 
 ```bash
-prism scan --json
+prism scan --format sarif -o results.sarif
+```
+
+Export results as GitHub Flavored Markdown for PR comments:
+
+```bash
+prism scan --format markdown
+```
+
+### 2. `prism test-impact` (Smart Test Selection)
+
+Identify exactly which tests are impacted by your current changes and find coverage gaps:
+
+```bash
+prism test-impact
+```
+
+Automatically execute only the impacted tests:
+
+```bash
+prism test-impact --run
+```
+
+### 3. `prism explain` (AI Agent Self-Healing Context)
+
+Generate high-density diagnostic context and remediation instructions ready to pipe into an AI coding agent:
+
+```bash
+prism explain
+```
+
+### 4. `prism init` (Project Configuration)
+
+Initialize a `prism.toml` file with sensible defaults:
+
+```bash
+prism init
 ```
 
 ---
 
-## 🛡️ CI & Pre-Commit Enforcement
+## 🤖 Agent / LLM Loop Mode
 
-### Git Pre-Commit Hook
-
-Never let an AI commit broken downstream contracts. Add `prism` to your `.pre-commit-config.yaml`:
-
-```yaml
-repos:
-  - repo: https://github.com/shenald-dev/prism
-    rev: v0.1.0
-    hooks:
-      - id: prism
-        entry: prism scan --strict
-        language: python
-        always_run: true
-```
-
-Or as a raw Git hook in `.git/hooks/pre-commit`:
+If you run autonomous coding loops (**Claude Code, Cursor Agent, Copilot Workspace, Aider, Devin**), use `prism` as your invariant guardrail:
 
 ```bash
-#!/bin/sh
-prism scan --strict
+# Provide structured context to agent when contracts break
+prism explain | your-agent-fixer
 ```
 
-### GitHub Actions Workflow
+Or pipe structured JSON:
 
-Add this to `.github/workflows/prism.yml` to block pull requests with broken contracts:
+```bash
+prism scan --json | your-agent-fixer
+```
+
+Sample JSON output:
+
+```json
+{
+  "impact_score": 85,
+  "risk_level": "CRITICAL",
+  "metrics": {
+    "modified_symbols": 1,
+    "direct_callers": 2,
+    "transitive_callers": 1,
+    "total_affected_files": 4,
+    "contract_violations": 2
+  },
+  "violations": [
+    {
+      "callee_name": "calculate_tax",
+      "caller_file": "order_service.py",
+      "caller_line": 45,
+      "severity": "CRITICAL",
+      "reason": "Missing 1 required argument(s): 'jurisdiction'",
+      "snippet": "calculate_tax(order.total, rate)",
+      "suggested_fix": "Update callsite to pass all required parameters ('jurisdiction')."
+    }
+  ],
+  "test_impact": {
+    "impacted_test_files": ["tests/test_orders.py"],
+    "impacted_test_cases": ["tests/test_orders.py::test_tax_calculation"],
+    "recommended_command": "pytest tests/test_orders.py"
+  }
+}
+```
+
+---
+
+## 🛡️ CI & GitHub Actions Enforcement
+
+### GitHub Actions Workflow with Inline PR Annotations (SARIF)
+
+Add `.github/workflows/prism.yml` to block PRs with broken contracts and display inline line-by-line annotations directly on your GitHub PR diff:
 
 ```yaml
 name: Prism Radar
@@ -195,42 +287,52 @@ jobs:
           python-version: "3.11"
 
       - name: Install Prism
-        run: pip install prism-radar
+        run: pip install "git+https://github.com/shenald-dev/prism.git"
 
-      - name: Verify Blast Radius & Invariants
-        run: prism scan --strict
+      - name: Run Prism SARIF Scan
+        run: prism scan --base origin/${{ github.base_ref }} --format sarif -o prism.sarif
+        continue-on-error: true
+
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: prism.sarif
+
+      - name: Strict Verification Gate
+        run: prism scan --base origin/${{ github.base_ref }} --strict
+```
+
+### Git Pre-Commit Hook
+
+Add to `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/shenald-dev/prism
+    rev: v1.0.0
+    hooks:
+      - id: prism
+        entry: prism scan --strict
+        language: python
+        always_run: true
 ```
 
 ---
 
-## 🤖 Agent / LLM Loop Mode
+## ⚙️ Configuration (`prism.toml`)
 
-If you run autonomous coding loops (e.g. Claude Code, Aider, Devin, OpenDevin, Cursor Agent), use `prism` as the ground-truth verifier:
+Customize PRISM's analysis behavior with an optional `prism.toml` or `pyproject.toml`:
 
-```bash
-prism scan --json | your-agent-fixer
-```
-
-Sample JSON response:
-
-```json
-{
-  "impact_score": 85,
-  "risk_level": "CRITICAL",
-  "total_modified_symbols": 1,
-  "total_affected_callers": 3,
-  "max_depth": 2,
-  "violations": [
-    {
-      "caller_file": "order_service.py",
-      "caller_line": 45,
-      "caller_name": "process_checkout",
-      "target_name": "calculate_tax",
-      "kind": "missing_required_arg",
-      "message": "Missing required argument 'jurisdiction'"
-    }
-  ]
-}
+```toml
+[prism]
+max_depth = 6
+strict = false
+fail_on = "CRITICAL"            # "CRITICAL", "ELEVATED", "MODERATE", or "ANY"
+max_impact_score = 70
+ignore_symbols = ["__repr__", "__str__", "__init__"]
+ignore_paths = ["legacy/*"]
+include_tests = true
+default_format = "terminal"     # "terminal", "json", "sarif", "markdown"
 ```
 
 ---
@@ -241,18 +343,18 @@ Sample JSON response:
                        ┌──────────────────────┐
                        │  Git Diff Workspace  │
                        └──────────┬───────────┘
-                                  │ (modified line ranges)
+                                  │ (modified line spans)
                                   ▼
 ┌──────────────────┐    ┌─────────────────────┐    ┌──────────────────┐
 │  Python AST      │───▶│  Symbol Extraction  │◀───│  JS / TS Lexer   │
 │  Visitor Engine  │    │  & Parameter Schema │    │  Parser Engine   │
+└────────┬─────────┘    └──────────┬──────────┘    └────────┬─────────┘
+         │                         │                        │
+         ▼                         ▼                        ▼
+┌──────────────────┐    ┌─────────────────────┐    ┌──────────────────┐
+│  Import Visitor  │───▶│  Topological Graph  │◀───│ Test Impact Radar│
+│  Alias Resolver  │    │  Transitive Callers │    │ Coverage Gaps    │
 └──────────────────┘    └──────────┬──────────┘    └──────────────────┘
-                                   │
-                                   ▼
-                        ┌─────────────────────┐
-                        │  Topological Graph  │
-                        │  Transitive Callers │
-                        └──────────┬──────────┘
                                    │
                                    ▼
                         ┌─────────────────────┐
@@ -260,15 +362,17 @@ Sample JSON response:
                         │  Signature Auditor  │
                         └──────────┬──────────┘
                                    │
-                 ┌─────────────────┴─────────────────┐
-                 ▼                                   ▼
-        [Rich Terminal Radar]              [JSON Machine Report]
+      ┌────────────────────────────┼────────────────────────────┐
+      ▼                            ▼                            ▼
+[Rich Terminal Radar]     [JSON / SARIF 2.1.0]        [Agent Remediation Context]
 ```
 
-1. **Diff Intersector:** `git diff` calculates precise changed line spans.
-2. **AST Symbol Extractor:** Parses symbols and records their parameters (positional, keyword-only, variadic `*args`, `**kwargs`, defaults).
-3. **Graph Traversal:** Computes the directed acyclic graph (DAG) of callers, safely detecting and pruning recursion cycles.
-4. **Contract Validator:** Evaluates call sites against target signatures for argument count and keyword alignment.
+1. **Diff Intersector:** `git diff` computes precise line ranges for uncommitted, staged, commit, or branch diffs.
+2. **AST Symbol Extractor:** Full lexical and AST visitors parse functions, methods, classes, and dataclasses, capturing positional-only, keyword-only, variadic, and default parameters.
+3. **Import Resolver:** Resolves imported modules and aliases to eliminate cross-module name collisions.
+4. **Topological Graph:** Computes the directed acyclic graph (DAG) of callers, safely detecting recursion cycles.
+5. **Contract Invariant Auditor:** Verifies call sites for parameter counts, keyword alignment, positional-only violations, and duplicate bindings.
+6. **Test Impact Radar:** Maps touched code to relevant test suites and exposes untested modified symbols.
 
 ---
 
