@@ -106,9 +106,20 @@ def get_git_diff_lines(
             # Diff against base branch or reference
             cmd.extend([base])
         else:
-            # Auto-detect GitHub Actions PR base if clean checkout
+            # Auto-detect GitHub Actions PR base if clean checkout and origin ref exists
             ci_base = os.getenv("GITHUB_BASE_REF")
+            ref_valid = False
             if ci_base:
+                check_ref = subprocess.run(
+                    ["git", "rev-parse", "--verify", f"origin/{ci_base}"],
+                    cwd=str(root),
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                ref_valid = check_ref.returncode == 0
+
+            if ref_valid and ci_base:
                 cmd.extend([f"origin/{ci_base}...HEAD"])
             else:
                 # Default: unstaged + staged working tree changes against HEAD
