@@ -150,13 +150,6 @@ def check_contract_violations(
         supplied_params = set(bound_positional) | (kwargs_set & all_known_params)
         missing_params = required_all - supplied_params
 
-        # Fallback check if caller args count is simply less than min_required_params
-        if not missing_params and symbol.min_required_params > 0:
-            total_supplied = len(supplied_params)
-            if total_supplied < symbol.min_required_params:
-                missing_count = symbol.min_required_params - total_supplied
-                missing_params = set(symbol.params[: symbol.min_required_params]) - supplied_params
-
         if missing_params:
             missing_count = len(missing_params)
             missing_names = ", ".join(f"'{m}'" for m in sorted(missing_params))
