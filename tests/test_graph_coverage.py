@@ -1,5 +1,6 @@
-from prism.core.graph import DependencyGraph, CallerNode
+from prism.core.graph import CallerNode, DependencyGraph
 from prism.parsers.base import CallSite, Symbol
+
 
 def test_graph_coverage():
     graph = DependencyGraph()
