@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 **[Pruned]:** Removed dead 'ignore_paths' config parameter and unused 'parent_class' attribute from Symbol.
+**[Pruned]:** Removed dead fallback logic in contract checking as `supplied_params` is correctly computed now.
 
 ## [1.0.0] - 2026-11-02
 
