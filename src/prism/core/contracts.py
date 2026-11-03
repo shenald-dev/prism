@@ -1,7 +1,7 @@
 """
 Contract and signature invariant violation detector.
 Catches argument count mismatches, missing required parameters, positional-only violations,
-duplicate bindings, and broken caller contracts across Python and TypeScript.
+duplicate bindings, broken caller contracts, and async/sync coroutine unawaited violations.
 """
 
 from dataclasses import dataclass
@@ -73,6 +73,36 @@ def check_contract_violations(
 
         args_count = call.args_count
         kwargs_set = set(call.kwargs_names)
+
+        # 0. Check for Async/Sync Invariants
+        if symbol.is_async and not call.is_awaited and "await " not in call.snippet:
+            violations.append(
+                ContractViolation(
+                    callee_name=symbol.name,
+                    callee_file=symbol.file_path,
+                    caller_identifier=call.caller_identifier,
+                    caller_file=call.file_path,
+                    caller_line=call.line_number,
+                    severity="CRITICAL",
+                    reason=f"Unawaited coroutine call: '{symbol.name}' is an async function, but caller invokes it without 'await'.",
+                    snippet=call.snippet,
+                    suggested_fix=f"Add 'await' before calling '{symbol.name}(...)' in async context.",
+                )
+            )
+        elif not symbol.is_async and (call.is_awaited or call.snippet.strip().startswith("await ")):
+            violations.append(
+                ContractViolation(
+                    callee_name=symbol.name,
+                    callee_file=symbol.file_path,
+                    caller_identifier=call.caller_identifier,
+                    caller_file=call.file_path,
+                    caller_line=call.line_number,
+                    severity="HIGH",
+                    reason=f"Awaiting synchronous function: '{symbol.name}' is synchronous, but caller invokes it with 'await'.",
+                    snippet=call.snippet,
+                    suggested_fix=f"Remove 'await' before calling synchronous '{symbol.name}(...)'.",
+                )
+            )
 
         # 1. Check for Positional-Only parameters passed via keyword
         posonly_passed_as_kw = kwargs_set & posonly_params

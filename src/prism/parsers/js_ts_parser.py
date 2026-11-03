@@ -1,7 +1,7 @@
 """
 Parser for JavaScript and TypeScript files extracting functions, methods, classes, signatures,
-imports, and call sites. Supports ES6+, TypeScript type annotations, arrow functions,
-and multi-line parameter lists.
+imports, call sites, async functions, and await expressions.
+Supports ES6+, TypeScript type annotations, arrow functions, and multi-line parameter lists.
 """
 
 import re
@@ -13,20 +13,20 @@ from prism.parsers.base import CallSite, ParsedFile, Symbol
 # Multi-line or single-line function declaration
 # export [default] [async] function name(...)
 FN_DECL_REGEX = re.compile(
-    r'(?:export\s+)?(?:default\s+)?(?:async\s+)?function(?:\s+([A-Za-z0-9_$]+))?\s*\(([\s\S]*?)\)',
+    r'(?:export\s+)?(?:default\s+)?(?:(async)\s+)?function(?:\s+([A-Za-z0-9_$]+))?\s*\(([\s\S]*?)\)',
     re.MULTILINE,
 )
 
 # Arrow functions
 # const/let/var name = [async] (...) =>
 ARROW_FN_REGEX = re.compile(
-    r'(?:export\s+)?(?:const|let|var)\s+([A-Za-z0-9_$]+)\s*=\s*(?:async\s*)?\(([\s\S]*?)\)\s*(?::\s*[^=]+)?=>',
+    r'(?:export\s+)?(?:const|let|var)\s+([A-Za-z0-9_$]+)\s*=\s*(async\s*)?\(([\s\S]*?)\)\s*(?::\s*[^=]+)?=>',
     re.MULTILINE,
 )
 
 # Class method definitions
 METHOD_DECL_REGEX = re.compile(
-    r'^\s*(?:public|private|protected|static|async)*\s*([A-Za-z0-9_$]+)\s*\(([\s\S]*?)\)\s*(?::\s*[^{]+)?\{',
+    r'^\s*(?:public|private|protected|static\s+)*(async\s+)?([A-Za-z0-9_$]+)\s*\(([\s\S]*?)\)\s*(?::\s*[^{]+)?\{',
     re.MULTILINE,
 )
 
@@ -48,7 +48,7 @@ IMPORT_STAR_REGEX = re.compile(
 )
 
 CALL_INVOCATION_REGEX = re.compile(
-    r'(?<!function\s)(?<!class\s)\b([A-Za-z0-9_$]+)\s*\(([\s\S]*?)\)'
+    r'(?:(await)\s+)?(?<!function\s)(?<!class\s)\b([A-Za-z0-9_$]+)\s*\(([\s\S]*?)\)'
 )
 
 
@@ -98,53 +98,60 @@ def _split_top_level_commas(s: str) -> List[str]:
 
 def _parse_params(param_str: str) -> Tuple[List[str], int, bool]:
     """
-    Parse parameter string and return:
-    - params: List of parameter names
-    - min_required: Count of required parameters
-    - has_rest: bool (whether rest parameter ...args is present)
+    Parse a raw parameter string into:
+    - clean parameter names list
+    - count of required parameters (before defaults or optional flags)
+    - whether a rest/varargs parameter exists
     """
-    params = []
-    min_required = 0
+    clean_params = []
     has_rest = False
-    clean_str = param_str.strip()
-    if not clean_str:
-        return params, min_required, has_rest
+    required_count = 0
 
-    raw_parts = _split_top_level_commas(clean_str)
-    for part in raw_parts:
-        part = part.strip()
-        if not part:
+    tokens = _split_top_level_commas(param_str)
+    for tok in tokens:
+        t = tok.strip()
+        if not t:
             continue
 
-        # Check for rest parameter
-        if part.startswith("..."):
+        if t.startswith("..."):
             has_rest = True
-            param_name = part[3:].split(":")[0].strip()
-            params.append(param_name)
+            p_name = t[3:].split(":")[0].strip()
+            clean_params.append(p_name)
             continue
 
-        # Check default value or optional marker
-        has_default = "=" in part or "?" in part
+        # Check for TypeScript optional param: e.g. name?: string
+        is_optional = False
+        if "?" in t:
+            is_optional = True
 
-        # Strip TypeScript type annotation: 'name: string = "default"' -> 'name'
-        clean_part = part.split(":")[0].strip()
-        param_name = clean_part.split("=")[0].strip().rstrip("?")
+        # Check for default value: e.g. timeout = 5000
+        has_default = "=" in t
 
-        params.append(param_name)
-        if not has_default:
-            min_required += 1
+        # Strip default and type annotations
+        base_part = t.split("=")[0].strip()
+        param_name = base_part.split(":")[0].replace("?", "").strip()
 
-    return params, min_required, has_rest
+        # Ignore destructuring patterns like { a, b }
+        if param_name.startswith(("{", "[")):
+            param_name = f"arg_{len(clean_params)}"
+
+        clean_params.append(param_name)
+
+        if not is_optional and not has_default and not has_rest:
+            required_count += 1
+
+    return clean_params, required_count, has_rest
 
 
 def _extract_imports(code: str) -> Dict[str, str]:
-    """Extract imported identifiers and their source modules."""
-    imports: Dict[str, str] = {}
-
+    """Extract ES6 module imports into a mapping of local name -> module path."""
+    imports = {}
     for m in IMPORT_NAMED_REGEX.finditer(code):
-        names_str, module_path = m.group(1), m.group(2)
-        for item in _split_top_level_commas(names_str):
+        raw_items, module_path = m.group(1), m.group(2)
+        for item in raw_items.split(","):
             item = item.strip()
+            if not item:
+                continue
             if " as " in item:
                 orig, alias = item.split(" as ")
                 imports[alias.strip()] = f"{module_path}::{orig.strip()}"
@@ -183,14 +190,16 @@ def parse_js_ts_file(file_path: str, code: str) -> ParsedFile:
 
         # Function declaration
         m_fn = FN_DECL_REGEX.match(stripped)
-        if m_fn and m_fn.group(1):
-            name, raw_params = m_fn.group(1), m_fn.group(2)
+        if m_fn and m_fn.group(2):
+            is_async = bool(m_fn.group(1))
+            name, raw_params = m_fn.group(2), m_fn.group(3)
             params, min_req, has_rest = _parse_params(raw_params)
             sig_params = " ".join(raw_params.split())
+            prefix = "async function" if is_async else "function"
             symbols.append(
                 Symbol(
                     name=name,
-                    kind="function",
+                    kind="async_function" if is_async else "function",
                     file_path=file_path,
                     line_number=lineno,
                     end_line_number=lineno,
@@ -199,8 +208,9 @@ def parse_js_ts_file(file_path: str, code: str) -> ParsedFile:
                     required_params=params[:min_req],
                     min_required_params=min_req,
                     has_varargs=has_rest,
-                    signature=f"function {name}({sig_params})",
+                    signature=f"{prefix} {name}({sig_params})",
                     is_test=is_test_file or name.startswith("test"),
+                    is_async=is_async,
                 )
             )
             continue
@@ -208,13 +218,16 @@ def parse_js_ts_file(file_path: str, code: str) -> ParsedFile:
         # Arrow function
         m_arrow = ARROW_FN_REGEX.match(stripped)
         if m_arrow:
-            name, raw_params = m_arrow.group(1), m_arrow.group(2)
+            name, raw_params = m_arrow.group(1), m_arrow.group(3)
+            is_async = bool(m_arrow.group(2))
             params, min_req, has_rest = _parse_params(raw_params)
             sig_params = " ".join(raw_params.split())
+            prefix = "const " if "const" in stripped else "let "
+            async_prefix = "async " if is_async else ""
             symbols.append(
                 Symbol(
                     name=name,
-                    kind="function",
+                    kind="async_function" if is_async else "function",
                     file_path=file_path,
                     line_number=lineno,
                     end_line_number=lineno,
@@ -223,8 +236,9 @@ def parse_js_ts_file(file_path: str, code: str) -> ParsedFile:
                     required_params=params[:min_req],
                     min_required_params=min_req,
                     has_varargs=has_rest,
-                    signature=f"const {name} = ({sig_params}) =>",
+                    signature=f"{prefix}{name} = {async_prefix}({sig_params}) =>",
                     is_test=is_test_file or name.startswith("test"),
+                    is_async=is_async,
                 )
             )
             continue
@@ -232,7 +246,8 @@ def parse_js_ts_file(file_path: str, code: str) -> ParsedFile:
         # Method
         m_method = METHOD_DECL_REGEX.match(line)
         if m_method:
-            name, raw_params = m_method.group(1), m_method.group(2)
+            is_async = bool(m_method.group(1))
+            name, raw_params = m_method.group(2), m_method.group(3)
             if name not in ("if", "for", "while", "switch", "catch"):
                 params, min_req, has_rest = _parse_params(raw_params)
                 sig_params = " ".join(raw_params.split())
@@ -250,6 +265,7 @@ def parse_js_ts_file(file_path: str, code: str) -> ParsedFile:
                         has_varargs=has_rest,
                         signature=f"{name}({sig_params})",
                         is_test=is_test_file or name.startswith("test"),
+                        is_async=is_async,
                     )
                 )
 
@@ -265,8 +281,9 @@ def parse_js_ts_file(file_path: str, code: str) -> ParsedFile:
             current_symbol = matching_syms[0].name
 
         for m_call in CALL_INVOCATION_REGEX.finditer(line):
-            callee = m_call.group(1)
-            raw_args = m_call.group(2).strip()
+            is_awaited = bool(m_call.group(1))
+            callee = m_call.group(2)
+            raw_args = m_call.group(3).strip()
 
             if callee in (
                 "if",
@@ -299,6 +316,7 @@ def parse_js_ts_file(file_path: str, code: str) -> ParsedFile:
                     args_count=args_count,
                     snippet=stripped,
                     callee_module=callee_mod,
+                    is_awaited=is_awaited,
                 )
             )
 

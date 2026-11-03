@@ -7,9 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
-**[Pruned]:** Removed dead 'ignore_paths' config parameter and unused 'parent_class' attribute from Symbol.
-**[Pruned]:** Removed dead fallback logic in contract checking as `supplied_params` is correctly computed now.
+## [2.0.0] - 2026-11-03
+
+### Added
+- **Async & Coroutine Contract Radar**:
+  - Detection of unawaited coroutine calls (`CRITICAL`): flags when asynchronous coroutines or functions are invoked synchronously without `await`.
+  - Detection of awaiting synchronous functions (`HIGH`): flags when non-async functions are invoked with `await`.
+  - Multi-language support: full Python AST traversal (`visit_Await` tracking) and TypeScript/JavaScript lexical await token analysis.
+- **Topological Visual Blast Diagrams**:
+  - `export_mermaid` & `export_dot` engines converting dependency shockwaves into Mermaid.js and Graphviz DOT formats.
+  - Native CLI integration via `--format mermaid` and `--format dot`, plus standalone `prism visual` / `prism graph` command.
+  - Generates clear DAG diagrams with custom styling: modified roots in bright red, broken contract callers in orange/yellow, tests in green, and unaffected callers in slate.
+- **Automated Call-Site Remediation & Auto-Patch Engine (`prism fix`)**:
+  - Intelligent AST & source patch generator synthesizing surgical unified diffs (`--patch <file>`) for broken contract call sites (e.g. adding `await`).
+  - One-click auto-patch execution (`prism fix --apply`) to repair broken call sites directly in place without manual syntax errors.
+- **Live Vibe-Coding Watcher (`prism watch`)**:
+  - Sub-second filesystem monitoring daemon designed for autonomous coding sessions (Cursor, Claude Code, Copilot Workspace, Aider).
+  - Continuously re-runs topological blast radius scans and updates the terminal radar in real time upon file modifications.
+- **Native Git Pre-Commit Hook & GitHub Actions CI Generators**:
+  - `prism hook install`: installs a native, lightweight executable Git pre-commit hook into `.git/hooks/pre-commit` to reject broken contracts prior to commit.
+  - `prism ci init`: generates a complete GitHub Actions CI workflow at `.github/workflows/prism-radar.yml` uploading SARIF annotations to GitHub Code Scanning.
+- **Graph Centrality & Hierarchy Telemetry**:
+  - Added degree centrality calculation (`get_centrality`) in `DependencyGraph` to identify system-critical architectural bottlenecks.
+  - Class inheritance and hierarchy tracking (`base_classes` and `parent_class`).
+- **Comprehensive v2.0.0 Test Suite**:
+  - Added 23 new unit and integration tests across async contracts, visual DAG generation, patch remediation, watcher daemon, hook installation, and CLI v2 workflows (78 tests total, 87% coverage).
+
+### Changed
+- Promoted package version to `2.0.0`.
+- Extended `BlastRadiusReport` with native `to_mermaid()` and `to_dot()` methods.
+- Upgraded `Symbol` model with `is_async`, `return_type`, `parent_class`, and `base_classes`.
+- Upgraded `CallSite` model with `is_awaited` flag.
+
+---
 
 ## [1.0.0] - 2026-11-02
 

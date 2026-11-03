@@ -1,7 +1,7 @@
 """
 Python AST parser for extracting functions, methods, classes, signatures, imports, and call sites.
 Supports Python 3.8-3.12 syntax including positional-only parameters, keyword-only parameters,
-and static/class method decorators.
+static/class method decorators, async def, and await expressions.
 """
 
 import ast
@@ -20,6 +20,7 @@ class PythonASTVisitor(ast.NodeVisitor):
         self.imports: Dict[str, str] = {}  # local symbol/alias -> source module or file
         self.scope_stack: List[str] = ["<module>"]
         self.current_class: Optional[str] = None
+        self.await_depth: int = 0
         self.is_test_file = (
             "test" in Path(file_path).parts
             or Path(file_path).name.startswith("test_")
@@ -53,6 +54,11 @@ class PythonASTVisitor(ast.NodeVisitor):
             target = f"{mod}::{alias.name}" if mod else alias.name
             self.imports[local_name] = target
         self.generic_visit(node)
+
+    def visit_Await(self, node: ast.Await):
+        self.await_depth += 1
+        self.generic_visit(node)
+        self.await_depth -= 1
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
         self._handle_function(node, is_async=False)
@@ -139,7 +145,15 @@ class PythonASTVisitor(ast.NodeVisitor):
         if has_kwargs:
             sig_parts.append(f"**{node.args.kwarg.arg}")
 
-        signature = f"{sig_prefix} {node.name}({', '.join(sig_parts)})"
+        ret_type = None
+        if hasattr(ast, "unparse") and node.returns:
+            try:
+                ret_type = ast.unparse(node.returns)
+            except Exception:
+                pass
+
+        sig_suffix = f" -> {ret_type}" if ret_type else ""
+        signature = f"{sig_prefix} {node.name}({', '.join(sig_parts)}){sig_suffix}"
         docstring = ast.get_docstring(node)
         is_test = self.is_test_file or node.name.startswith("test_")
 
@@ -161,6 +175,9 @@ class PythonASTVisitor(ast.NodeVisitor):
             signature=signature,
             docstring=docstring,
             is_test=is_test,
+            is_async=is_async,
+            return_type=ret_type,
+            parent_class=self.current_class,
         )
         self.symbols.append(symbol)
 
@@ -183,6 +200,14 @@ class PythonASTVisitor(ast.NodeVisitor):
                     decorator_names.add(d.func.attr)
 
         is_dataclass = "dataclass" in decorator_names
+
+        # Extract base classes
+        base_classes = []
+        for b in node.bases:
+            if isinstance(b, ast.Name):
+                base_classes.append(b.id)
+            elif isinstance(b, ast.Attribute):
+                base_classes.append(b.attr)
 
         # Look for __init__ or dataclass fields
         init_node = None
@@ -252,6 +277,7 @@ class PythonASTVisitor(ast.NodeVisitor):
             signature=f"class {node.name}({', '.join(class_params)})",
             docstring=ast.get_docstring(node),
             is_test=is_test,
+            base_classes=base_classes,
         )
         self.symbols.append(symbol)
 
@@ -288,6 +314,7 @@ class PythonASTVisitor(ast.NodeVisitor):
             args_count = len(node.args)
             kwargs_names = [kw.arg for kw in node.keywords if kw.arg is not None]
             snippet = self._get_snippet(node.lineno)
+            is_awaited = self.await_depth > 0
 
             call_site = CallSite(
                 caller_name=self.current_scope,
@@ -299,6 +326,7 @@ class PythonASTVisitor(ast.NodeVisitor):
                 snippet=snippet,
                 callee_module=callee_module,
                 is_method_call=is_method_call,
+                is_awaited=is_awaited,
             )
             self.call_sites.append(call_site)
 

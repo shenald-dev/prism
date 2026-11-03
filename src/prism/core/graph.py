@@ -1,6 +1,6 @@
 """
 Directed Dependency & Call Graph engine for calculating caller cascades, blast trees,
-and transitive impact shockwaves.
+topological centrality, and transitive impact shockwaves.
 """
 
 from collections import defaultdict
@@ -44,17 +44,29 @@ class DependencyGraph:
         self.incoming_by_module: Dict[str, List[CallSite]] = defaultdict(list)
         # symbol_identifier -> Symbol
         self.symbols: Dict[str, Symbol] = {}
+        # base_class -> list of derived classes
+        self.class_hierarchy: Dict[str, List[str]] = defaultdict(list)
 
     def register_symbol(self, symbol: Symbol):
         """Register a symbol in the graph index."""
         self.symbols[symbol.identifier] = symbol
         self.symbols[symbol.name] = symbol
 
+        # Record inheritance
+        if symbol.kind == "class" and symbol.base_classes:
+            for base in symbol.base_classes:
+                self.class_hierarchy[base].append(symbol.name)
+
     def add_call_site(self, call: CallSite):
         """Add a call site to graph indices."""
         self.incoming_calls[call.callee_name].append(call)
         if call.callee_module:
             self.incoming_by_module[call.callee_module].append(call)
+
+    def get_centrality(self, target: Union[Symbol, str]) -> int:
+        """Return in-degree centrality (total incoming calls) for a symbol."""
+        name = target.name if isinstance(target, Symbol) else target
+        return len(self.incoming_calls.get(name, []))
 
     def get_direct_callers(self, target: Union[Symbol, str]) -> List[CallSite]:
         """
@@ -88,6 +100,7 @@ class DependencyGraph:
     ) -> Tuple[List[CallerNode], Set[str], Set[str]]:
         """
         Compute the transitive caller cascade (blast tree) for a given symbol.
+
         Returns:
             - root_caller_nodes: Tree representation of callers
             - affected_functions: Set of all affected function identifiers

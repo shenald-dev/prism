@@ -25,6 +25,10 @@ class Symbol:
     signature: str = ""
     docstring: Optional[str] = None
     is_test: bool = False
+    is_async: bool = False
+    return_type: Optional[str] = None
+    parent_class: Optional[str] = None
+    base_classes: List[str] = field(default_factory=list)
 
     @property
     def identifier(self) -> str:
@@ -47,6 +51,10 @@ class Symbol:
             "has_kwargs": self.has_kwargs,
             "signature": self.signature,
             "is_test": self.is_test,
+            "is_async": self.is_async,
+            "return_type": self.return_type,
+            "parent_class": self.parent_class,
+            "base_classes": self.base_classes,
         }
 
 
@@ -61,6 +69,7 @@ class CallSite:
     snippet: str = ""
     callee_module: Optional[str] = None
     is_method_call: bool = False
+    is_awaited: bool = False
 
     @property
     def caller_identifier(self) -> str:
@@ -77,6 +86,7 @@ class CallSite:
             "snippet": self.snippet,
             "callee_module": self.callee_module,
             "is_method_call": self.is_method_call,
+            "is_awaited": self.is_awaited,
         }
 
 

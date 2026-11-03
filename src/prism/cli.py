@@ -14,8 +14,12 @@ from prism.core.blast import compute_blast_radius
 from prism.core.config import load_config
 from prism.core.git import discover_all_source_files, get_git_diff_lines, identify_modified_symbols
 from prism.core.graph import DependencyGraph
+from prism.core.hook import init_github_actions_workflow, install_git_pre_commit_hook
+from prism.core.patch import PatchGenerator
 from prism.core.remediation import generate_agent_remediation_prompt
 from prism.core.tests import run_impacted_tests
+from prism.core.visual import export_dot, export_mermaid
+from prism.core.watch import LiveRadarWatcher
 from prism.parsers.base import ParsedFile
 from prism.parsers.js_ts_parser import parse_js_ts_file
 from prism.parsers.python_parser import parse_python_file
@@ -25,6 +29,20 @@ app = typer.Typer(
     help="💎 Real-time topological blast radius and contract analysis for AI-generated code. Know what will break before you commit.",
     add_completion=False,
 )
+
+hook_app = typer.Typer(
+    name="hook",
+    help="🪝 Manage Git pre-commit hooks for PRISM.",
+    no_args_is_help=True,
+)
+app.add_typer(hook_app, name="hook")
+
+ci_app = typer.Typer(
+    name="ci",
+    help="🤖 Manage CI/CD automation workflows (GitHub Actions, SARIF).",
+    no_args_is_help=True,
+)
+app.add_typer(ci_app, name="ci")
 
 
 def version_callback(value: bool):
@@ -132,7 +150,7 @@ def scan(
         "terminal",
         "--format",
         "-f",
-        help="Output format: 'terminal', 'json', 'sarif', or 'markdown'.",
+        help="Output format: 'terminal', 'json', 'sarif', 'markdown', 'mermaid', or 'dot'.",
     ),
     output_file: Optional[Path] = typer.Option(
         None,
@@ -222,6 +240,14 @@ def scan(
         output_content = report.to_markdown()
         if not output_file:
             print(output_content)
+    elif effective_format == "mermaid":
+        output_content = report.to_mermaid()
+        if not output_file:
+            print(output_content)
+    elif effective_format == "dot":
+        output_content = report.to_dot()
+        if not output_file:
+            print(output_content)
     else:
         render_report(report)
 
@@ -252,6 +278,152 @@ def scan(
                 f"or risk level is {report.risk_level}.[/]\n"
             )
         raise typer.Exit(1)
+
+
+@app.command(name="visual")
+@app.command(name="graph")
+def visual_command(
+    path: Path = typer.Argument(
+        Path("."),
+        help="Target repository or directory to visualize.",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        resolve_path=True,
+    ),
+    format_type: str = typer.Option("mermaid", "--format", "-f", help="Diagram format: 'mermaid' or 'dot'."),
+    output_file: Optional[Path] = typer.Option(None, "--output", "-o", help="Destination file to save diagram."),
+):
+    """Generate visual DAG diagrams of the blast radius in Mermaid.js or Graphviz DOT."""
+    parsed_files, graph, source_files = _collect_and_parse(path, include_tests=True)
+    diff_lines = get_git_diff_lines(path)
+    modified = identify_modified_symbols(diff_lines, parsed_files)
+    if not modified:
+        for p in parsed_files.values():
+            modified.extend(p.symbols)
+
+    report = compute_blast_radius(
+        modified_symbols=modified,
+        graph=graph,
+        total_files_scanned=len(source_files),
+        duration_seconds=0.0,
+        include_tests=True,
+    )
+
+    if format_type.lower() == "dot":
+        diagram = export_dot(report)
+    else:
+        diagram = export_mermaid(report)
+
+    if output_file:
+        output_file.write_text(diagram, encoding="utf-8")
+        console.print(f"[bold green]✔ Saved {format_type.upper()} diagram to {output_file}[/]")
+    else:
+        print(diagram)
+
+
+@app.command(name="fix")
+def fix_command(
+    path: Path = typer.Argument(
+        Path("."),
+        help="Target repository or directory to remediate.",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        resolve_path=True,
+    ),
+    apply_fixes: bool = typer.Option(False, "--apply", help="Apply remediations directly to caller files."),
+    patch_file: Optional[Path] = typer.Option(None, "--patch", help="Save unified diff patch to file."),
+):
+    """Auto-generate or apply callsite fixes for contract violations (unawaited coroutines, etc.)."""
+    parsed_files, graph, source_files = _collect_and_parse(path, include_tests=True)
+    diff_lines = get_git_diff_lines(path)
+    modified = identify_modified_symbols(diff_lines, parsed_files)
+    if not modified:
+        for p in parsed_files.values():
+            modified.extend(p.symbols)
+
+    report = compute_blast_radius(
+        modified_symbols=modified,
+        graph=graph,
+        total_files_scanned=len(source_files),
+        duration_seconds=0.0,
+        include_tests=True,
+    )
+
+    if not report.all_violations:
+        console.print("[bold green]✨ No broken contracts found. Codebase is clean.[/]")
+        return
+
+    patch_str = PatchGenerator.generate_patch(report.all_violations, path)
+
+    if patch_file:
+        patch_file.write_text(patch_str, encoding="utf-8")
+        console.print(f"[bold green]✔ Saved unified patch to {patch_file}[/]")
+    elif not apply_fixes:
+        if patch_str:
+            console.print("[bold cyan]📋 Proposed Call-site Remediation Patch:[/]\n")
+            console.print(patch_str)
+            console.print("\n[dim]Run 'prism fix --apply' to automatically modify caller files.[/]\n")
+        else:
+            console.print("[yellow]No automated patches available for current violations. Run 'prism explain'.[/]")
+
+    if apply_fixes:
+        count = PatchGenerator.apply_fixes(report.all_violations, path)
+        if count > 0:
+            console.print(f"[bold green]✔ Successfully applied fixes to {count} callsite(s)![/]")
+        else:
+            console.print("[yellow]No automated fixes could be safely applied.[/]")
+
+
+@app.command(name="watch")
+def watch_command(
+    path: Path = typer.Argument(
+        Path("."),
+        help="Target repository to monitor in real-time.",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        resolve_path=True,
+    ),
+    interval: float = typer.Option(0.5, "--interval", "-i", help="Polling interval in seconds."),
+):
+    """Live continuous radar watcher daemon for real-time AI vibe-coding feedback."""
+    print_banner()
+    console.print(f"[bold cyan]👀 PRISM Live Radar active on {path.resolve()}[/] [dim](Ctrl+C to exit)[/]\n")
+
+    def _on_change():
+        console.clear()
+        print_banner()
+        console.print("[bold yellow]⚡ Change detected! Recomputing blast radius...[/]\n")
+        scan(path=path)
+
+    watcher = LiveRadarWatcher(path, poll_interval=interval)
+    try:
+        watcher.watch(_on_change)
+    except KeyboardInterrupt:
+        console.print("\n[bold cyan]PRISM Live Radar stopped.[/]")
+
+
+# --- Hook and CI commands ---
+
+
+@hook_app.command(name="install")
+def hook_install(
+    path: Path = typer.Argument(Path("."), help="Target git repository path."),
+):
+    """Install native pre-commit hook preventing commits with broken contracts."""
+    hook_path = install_git_pre_commit_hook(path)
+    console.print(f"[bold green]✔ Installed PRISM pre-commit hook at {hook_path}[/]")
+
+
+@ci_app.command(name="init")
+def ci_init(
+    path: Path = typer.Argument(Path("."), help="Target repository path."),
+):
+    """Initialize GitHub Actions PRISM blast radius CI workflow."""
+    wf_path = init_github_actions_workflow(path)
+    console.print(f"[bold green]✔ Generated GitHub Actions workflow at {wf_path}[/]")
 
 
 @app.command(name="test-impact")
@@ -356,7 +528,7 @@ def init(
         console.print(f"[bold yellow]Config file {target_file} already exists.[/]")
         raise typer.Exit(0)
 
-    starter_config = """# PRISM Configuration File
+    starter_config = """# PRISM Configuration File (v2.0)
 # Documentation: https://github.com/shenald-dev/prism
 
 [prism]

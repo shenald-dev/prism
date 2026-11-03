@@ -86,6 +86,14 @@ class BlastRadiusReport:
     def to_sarif(self) -> Dict[str, Any]:
         return export_sarif(self.all_violations)
 
+    def to_mermaid(self) -> str:
+        from prism.core.visual import export_mermaid
+        return export_mermaid(self)
+
+    def to_dot(self) -> str:
+        from prism.core.visual import export_dot
+        return export_dot(self)
+
     def to_markdown(self) -> str:
         """Render a GitHub Flavored Markdown report for CI step summaries and PR comments."""
         risk_emojis = {
