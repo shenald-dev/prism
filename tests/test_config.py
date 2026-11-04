@@ -8,7 +8,6 @@ def test_prism_config_defaults():
     assert cfg.max_depth == 5
     assert cfg.strict is False
     assert cfg.fail_on == "CRITICAL"
-    assert cfg.max_impact_score == 70
     assert "__repr__" in cfg.ignore_symbols
     assert cfg.include_tests is True
     assert cfg.default_format == "terminal"
@@ -19,7 +18,6 @@ def test_prism_config_from_dict():
         "max_depth": 8,
         "strict": True,
         "fail_on": "elevated",
-        "max_impact_score": 50,
         "ignore_symbols": ["helper"],
         "include_tests": False,
         "default_format": "sarif",
@@ -28,7 +26,6 @@ def test_prism_config_from_dict():
     assert cfg.max_depth == 8
     assert cfg.strict is True
     assert cfg.fail_on == "ELEVATED"
-    assert cfg.max_impact_score == 50
     assert cfg.ignore_symbols == ["helper"]
     assert cfg.include_tests is False
     assert cfg.default_format == "sarif"
