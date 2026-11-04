@@ -87,8 +87,6 @@ class DependencyGraph:
                         scoped_calls.append(call)
                     elif "::" in call.callee_module and call.callee_module.endswith(f"::{target.name}"):
                         scoped_calls.append(call)
-                    else:
-                        scoped_calls.append(call)
                 else:
                     scoped_calls.append(call)
             return scoped_calls
