@@ -423,7 +423,6 @@ Customize PRISM's analysis behavior with an optional `prism.toml` or `pyproject.
 max_depth = 6
 strict = false
 fail_on = "CRITICAL"            # "CRITICAL", "ELEVATED", "MODERATE", or "ANY"
-max_impact_score = 70
 ignore_symbols = ["__repr__", "__str__", "__init__"]
 include_tests = true
 default_format = "terminal"     # "terminal", "json", "sarif", "markdown", "mermaid", "dot"
