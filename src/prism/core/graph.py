@@ -63,11 +63,6 @@ class DependencyGraph:
         if call.callee_module:
             self.incoming_by_module[call.callee_module].append(call)
 
-    def get_centrality(self, target: Union[Symbol, str]) -> int:
-        """Return in-degree centrality (total incoming calls) for a symbol."""
-        name = target.name if isinstance(target, Symbol) else target
-        return len(self.incoming_calls.get(name, []))
-
     def get_direct_callers(self, target: Union[Symbol, str]) -> List[CallSite]:
         """
         Return all call sites that directly invoke target symbol.
