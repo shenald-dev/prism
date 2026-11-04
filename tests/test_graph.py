@@ -51,6 +51,31 @@ def test_graph_handles_cycles():
     assert "x.py::func_x" in affected_funcs
     assert "y.py::func_y" in affected_funcs
 
+def test_graph_direct_callers_filtering():
+    graph = DependencyGraph()
+
+    # We want to find direct callers for this symbol
+    sym_my_func = Symbol("my_func", "function", "f.py", 1, 5)
+
+    # 1. Matches: caller specifies correct module "f"
+    graph.add_call_site(CallSite("X", "my_func", "x.py", 2, callee_module="f"))
+
+    # 2. Excluded: caller specifies incorrect module "wrong_module"
+    graph.add_call_site(CallSite("Y", "my_func", "y.py", 3, callee_module="wrong_module"))
+
+    # 3. Matches: caller doesn't specify a module (so it could be this one)
+    graph.add_call_site(CallSite("Z", "my_func", "z.py", 4, callee_module=None))
+
+    # 4. Matches: caller specifies exact file stem "f"
+    graph.add_call_site(CallSite("W", "my_func", "w.py", 5, callee_module="f"))
+
+    callers = graph.get_direct_callers(sym_my_func)
+
+    assert len(callers) == 3
+    caller_names = {c.caller_name for c in callers}
+    assert caller_names == {"X", "Z", "W"}
+
+
 def test_graph_max_depth():
     graph = DependencyGraph()
     sym_a = Symbol("func_a", "function", "a.py", 1, 5)
