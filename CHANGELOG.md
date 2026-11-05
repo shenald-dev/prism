@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**[Fixed]:** Resolved a bug where transitive blast trees would incorrectly merge callers of identically named symbols across different modules by recursively scoping `Symbol` objects inside tree traversal.
 **[Pruned]:** Removed unused `max_impact_score` configuration logic and `get_centrality` graph centrality calculation method to eliminate codebase entropy.
 
 ## [2.0.0] - 2026-11-03

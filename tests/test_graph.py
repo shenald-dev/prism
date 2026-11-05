@@ -100,3 +100,22 @@ def test_graph_max_depth():
     node_c2 = node_b2.children[0]
     assert node_c2.caller_symbol == "c.py::func_c"
     assert len(node_c2.children) == 0
+
+def test_graph_transitive_callers_scoping_fix():
+    graph = DependencyGraph()
+    sym1 = Symbol("calc", "function", "math.py", 1, 5)
+    sym2 = Symbol("calc", "function", "physics.py", 1, 5)
+    graph.register_symbol(sym1)
+    graph.register_symbol(sym2)
+
+    # A calls math.calc
+    graph.add_call_site(CallSite("A", "calc", "a.py", 2, callee_module="math"))
+    # B calls physics.calc
+    graph.add_call_site(CallSite("B", "calc", "b.py", 2, callee_module="physics"))
+
+    tree, _, _ = graph.compute_blast_tree(sym1)
+    caller_symbols = [n.caller_symbol for n in tree]
+
+    # Should only return A, since B calls the identically named function in a different module
+    assert len(caller_symbols) == 1
+    assert "a.py::A" in caller_symbols
