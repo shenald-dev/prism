@@ -66,6 +66,7 @@ def _populate_tree_nodes(parent_tree: Tree, nodes: list[CallerNode], violations_
 
 def render_report(report: BlastRadiusReport):
     """Render the full topological blast radius report."""
+    import shlex
     if not report.symbol_blasts:
         console.print(
             Panel(
@@ -131,7 +132,7 @@ def render_report(report: BlastRadiusReport):
             test_text.append(f"• Impacted Test Files: {len(report.test_impact.impacted_test_files)}\n", style="bold")
             test_text.append(f"• Impacted Test Cases: {len(report.test_impact.impacted_test_cases)}\n", style="cyan")
             if report.test_impact.recommended_command:
-                test_text.append(f"• Recommended Run: {report.test_impact.recommended_command}\n", style="bold green")
+                test_text.append(f"• Recommended Run: {shlex.join(report.test_impact.recommended_command)}\n", style="bold green")
 
         if report.test_impact.untested_symbols:
             test_text.append(

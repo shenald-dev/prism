@@ -23,7 +23,7 @@ def test_analyze_test_impact_identifies_tests():
 
     assert "tests/test_tax.py" in summary.impacted_test_files
     assert "tests/test_tax.py::test_calculate_tax" in summary.impacted_test_cases
-    assert summary.recommended_command == "pytest tests/test_tax.py"
+    assert summary.recommended_command == ["pytest", "tests/test_tax.py"]
     # sym2 has no test callers
     assert "currency.py::format_currency" in summary.untested_symbols
 
