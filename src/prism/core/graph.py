@@ -102,12 +102,12 @@ class DependencyGraph:
         affected_functions: Set[str] = {symbol.identifier}
         affected_files: Set[str] = {symbol.file_path}
 
-        def _traverse(current_name: str, depth: int, visited_path: Set[str]) -> List[CallerNode]:
+        def _traverse(current_target: Union[Symbol, str], depth: int, visited_path: Set[str]) -> List[CallerNode]:
             if depth > max_depth:
                 return []
 
             nodes = []
-            direct_calls = self.incoming_calls.get(current_name, [])
+            direct_calls = self.get_direct_callers(current_target)
 
             for call in direct_calls:
                 call_id = f"{call.file_path}::{call.caller_name}:{call.line_number}"
@@ -139,7 +139,7 @@ class DependencyGraph:
                 # Transitive traversal if caller is a defined function/method
                 if call.caller_name != "<module>":
                     node.children = _traverse(
-                        call.caller_name,
+                        caller_sym if caller_sym else call.caller_name,
                         depth + 1,
                         visited_path | {call_id},
                     )
@@ -148,5 +148,5 @@ class DependencyGraph:
 
             return nodes
 
-        blast_tree = _traverse(symbol.name, depth=1, visited_path=set())
+        blast_tree = _traverse(symbol, depth=1, visited_path=set())
         return blast_tree, affected_functions, affected_files
