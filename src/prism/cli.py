@@ -468,7 +468,8 @@ def test_impact_command(
         console.print(f"  • [purple]{tc}[/]")
 
     if report.test_impact.recommended_command:
-        console.print(f"\n[bold green]Command to execute:[/] [white]{report.test_impact.recommended_command}[/]\n")
+        import shlex
+        console.print(f"\n[bold green]Command to execute:[/] [white]{shlex.join(report.test_impact.recommended_command)}[/]\n")
 
     if run:
         console.print("[bold yellow]Running impacted tests...[/]\n")

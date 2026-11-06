@@ -18,7 +18,7 @@ class TestImpactSummary:
     impacted_test_files: List[str] = field(default_factory=list)
     impacted_test_cases: List[str] = field(default_factory=list)
     untested_symbols: List[str] = field(default_factory=list)
-    recommended_command: Optional[str] = None
+    recommended_command: Optional[List[str]] = None
     execution_result: Optional[str] = None
     execution_success: Optional[bool] = None
 
@@ -65,14 +65,14 @@ def analyze_test_impact(
             untested.append(sym.identifier)
 
     # Build recommended command
-    recommended_cmd: Optional[str] = None
+    recommended_cmd: Optional[List[str]] = None
     py_tests = [f for f in impacted_files if f.endswith(".py")]
     ts_tests = [f for f in impacted_files if f.endswith((".ts", ".js", ".tsx", ".jsx"))]
 
     if py_tests:
-        recommended_cmd = f"pytest {' '.join(sorted(py_tests))}"
+        recommended_cmd = ["pytest"] + sorted(py_tests)
     elif ts_tests:
-        recommended_cmd = f"npm test -- {' '.join(sorted(ts_tests))}"
+        recommended_cmd = ["npm", "test", "--"] + sorted(ts_tests)
 
     return TestImpactSummary(
         impacted_test_files=sorted(impacted_files),
@@ -91,10 +91,9 @@ def run_impacted_tests(
         test_summary.execution_success = True
         return test_summary
 
-    cmd_parts = test_summary.recommended_command.split()
     try:
         res = subprocess.run(
-            cmd_parts,
+            test_summary.recommended_command,
             cwd=str(root),
             capture_output=True,
             text=True,

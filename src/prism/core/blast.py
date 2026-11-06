@@ -96,6 +96,7 @@ class BlastRadiusReport:
 
     def to_markdown(self) -> str:
         """Render a GitHub Flavored Markdown report for CI step summaries and PR comments."""
+        import shlex
         risk_emojis = {
             "LOW": "🟢",
             "MODERATE": "🟡",
@@ -141,7 +142,7 @@ class BlastRadiusReport:
                 f"- **Impacted Test Cases:** `{len(self.test_impact.impacted_test_cases)}`",
             ])
             if self.test_impact.recommended_command:
-                lines.append(f"- **Recommended Test Command:** `{self.test_impact.recommended_command}`")
+                lines.append(f"- **Recommended Test Command:** `{shlex.join(self.test_impact.recommended_command)}`")
             if self.test_impact.untested_symbols:
                 lines.append(f"- ⚠️ **Untested Symbols:** {', '.join(f'`{s}`' for s in self.test_impact.untested_symbols)}")
             lines.append("")

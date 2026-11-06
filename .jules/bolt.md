@@ -13,3 +13,7 @@
 ## 2026-11-03 — Transitive Blast Tree Scoping
 - **Learning:** When calculating the transitive blast tree of a target symbol, traversing by string names without tracking the actual `Symbol` references caused identical names across different modules to merge their transitive callers, causing large filtering failures (O(N)).
 - **Action:** Recursively pass `Symbol` objects inside `_traverse` (and use `get_direct_callers`) instead of generic string names to correctly scope recursive dependencies.
+
+## 2026-11-06 — Command Injection & Spacing fix for Test Runner
+- **Learning:** Using `.split()` to parse test execution commands dynamically constructed with Python's space-delimited string interpolation opens up shell execution vulnerabilities when dealing with filenames that contain spaces, leading to incorrect command tokenization or execution failures.
+- **Action:** Test runner outputs like `recommended_command` must be strictly constructed and passed as a `List[str]` directly into `subprocess.run()`, completely avoiding intermediary `.split()` operations.
