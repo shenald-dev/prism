@@ -44,18 +44,11 @@ class DependencyGraph:
         self.incoming_by_module: Dict[str, List[CallSite]] = defaultdict(list)
         # symbol_identifier -> Symbol
         self.symbols: Dict[str, Symbol] = {}
-        # base_class -> list of derived classes
-        self.class_hierarchy: Dict[str, List[str]] = defaultdict(list)
 
     def register_symbol(self, symbol: Symbol):
         """Register a symbol in the graph index."""
         self.symbols[symbol.identifier] = symbol
         self.symbols[symbol.name] = symbol
-
-        # Record inheritance
-        if symbol.kind == "class" and symbol.base_classes:
-            for base in symbol.base_classes:
-                self.class_hierarchy[base].append(symbol.name)
 
     def add_call_site(self, call: CallSite):
         """Add a call site to graph indices."""
