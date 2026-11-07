@@ -13,3 +13,7 @@
 ## 2026-11-03 — Transitive Blast Tree Scoping
 - **Learning:** When calculating the transitive blast tree of a target symbol, traversing by string names without tracking the actual `Symbol` references caused identical names across different modules to merge their transitive callers, causing large filtering failures (O(N)).
 - **Action:** Recursively pass `Symbol` objects inside `_traverse` (and use `get_direct_callers`) instead of generic string names to correctly scope recursive dependencies.
+
+## 2026-11-03 — ATLAS-WARDEN Run
+- **Learning:** Reverified that zero-dependency core is maintained (only rich and typer), all tests passed, and no actual entropy needed removal after reverting the invalid patch.
+- **Action:** Executed pytest (100% pass) and ruff (clean).
