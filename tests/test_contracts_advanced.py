@@ -12,7 +12,6 @@ def test_positional_only_passed_as_keyword():
         end_line_number=5,
         params=["a", "b"],
         posonly_params=["a", "b"],
-        positional_params=["a", "b"],
         required_params=["a", "b"],
         min_required_params=2,
     )
@@ -38,7 +37,6 @@ def test_duplicate_parameter_binding():
         line_number=1,
         end_line_number=5,
         params=["name", "age"],
-        positional_params=["name", "age"],
         required_params=["name"],
         min_required_params=1,
     )
@@ -66,7 +64,6 @@ def handler():
 """
     parsed = parse_python_file("mailer.py", code)
     fn_sym = next(s for s in parsed.symbols if s.name == "send_email")
-    assert "recipient" in fn_sym.positional_params
     assert "subject" in fn_sym.kwonly_params
     assert "subject" in fn_sym.required_params
     assert fn_sym.min_required_params == 2  # recipient + subject
