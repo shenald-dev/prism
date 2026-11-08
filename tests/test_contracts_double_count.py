@@ -10,7 +10,6 @@ def test_detects_duplicate_unexpected_kwargs():
         line_number=1,
         end_line_number=5,
         params=["a"],
-        positional_params=["a"],
         min_required_params=1,
     )
     call = CallSite(
@@ -37,7 +36,6 @@ def test_correct_total_supplied_count():
         line_number=1,
         end_line_number=5,
         params=["a", "b"],
-        positional_params=["a", "b"],
         min_required_params=2,
     )
     call = CallSite(

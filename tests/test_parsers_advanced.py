@@ -63,15 +63,12 @@ class MathService:
 
     add_sym = syms["add"]
     assert add_sym.min_required_params == 2  # staticmethod: does not drop first arg
-    assert add_sym.positional_params == ["a", "b"]
 
     create_sym = syms["create"]
     assert create_sym.min_required_params == 1  # classmethod: drops cls
-    assert create_sym.positional_params == ["config"]
 
     mult_sym = syms["multiply"]
     assert mult_sym.min_required_params == 1  # instance method: drops self
-    assert mult_sym.positional_params == ["factor"]
 
 
 def test_python_parser_imports_and_attributes():

@@ -43,11 +43,7 @@ def check_contract_violations(
     violations: List[ContractViolation] = []
 
     # Derive positional and keyword metadata if not already computed
-    positional_params = (
-        symbol.positional_params
-        if symbol.positional_params or not symbol.params
-        else [p for p in symbol.params if p not in symbol.kwonly_params]
-    )
+    positional_params = [p for p in symbol.params if p not in symbol.kwonly_params and p not in ("self", "cls")]
     posonly_params = set(symbol.posonly_params)
     kwonly_params = set(symbol.kwonly_params)
     all_known_params = set(symbol.params) | kwonly_params | posonly_params
