@@ -58,3 +58,25 @@ def test_blast_risk_elevated():
     report = compute_blast_radius([sym], graph, 6, 0.0)
     assert report.risk_level == "ELEVATED"
     assert report.impact_score == 45
+
+
+def test_transitive_callers_count_with_shared_direct_callers():
+    s1 = Symbol(name="fn1", kind="function", file_path="core.py", line_number=1, end_line_number=3)
+    s2 = Symbol(name="fn2", kind="function", file_path="core.py", line_number=5, end_line_number=7)
+    graph = DependencyGraph()
+    graph.register_symbol(s1)
+    graph.register_symbol(s2)
+
+    # direct_caller invokes both fn1 and fn2
+    graph.add_call_site(CallSite(caller_name="direct_caller", callee_name="fn1", file_path="app.py", line_number=10))
+    graph.add_call_site(CallSite(caller_name="direct_caller", callee_name="fn2", file_path="app.py", line_number=11))
+    # transitive_caller invokes direct_caller
+    graph.add_call_site(CallSite(caller_name="transitive_caller", callee_name="direct_caller", file_path="outer.py", line_number=20))
+
+    report = compute_blast_radius([s1, s2], graph, total_files_scanned=3, duration_seconds=0.01)
+
+    assert report.modified_symbols_count == 2
+    assert report.direct_callers_count == 2  # Total direct caller edges
+    assert report.transitive_callers_count == 1  # outer.py::transitive_caller should not be zeroed out
+    assert "outer.py::transitive_caller" in report.all_affected_functions
+

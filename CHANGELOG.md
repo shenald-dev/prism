@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**[Fixed]:** Resolved regex operator precedence in `METHOD_DECL_REGEX` allowing TypeScript class methods with visibility modifiers (`public`, `private`, `protected`, `static`) to be accurately extracted as symbol definitions.
+**[Fixed]:** Added `"async"` to the excluded keyword tuple in JavaScript/TypeScript call invocation parsing, preventing async arrow functions from creating bogus call sites to a non-existent `'async'` function.
+**[Fixed]:** Deduplicated direct caller function identifiers in `BlastRadiusReport.transitive_callers_count` and impact scoring calculations to prevent multi-symbol shared callers from undercounting or zeroing out transitive callers.
+**[Fixed]:** Normalized Windows backslash file path separators in `DependencyGraph.get_direct_callers` to ensure accurate cross-platform module and file stem resolution.
 **[Fixed]:** Resolved a bug where transitive blast trees would incorrectly merge callers of identically named symbols across different modules by recursively scoping `Symbol` objects inside tree traversal.
 **[Pruned]:** Removed unused `max_impact_score` configuration logic and `get_centrality` graph centrality calculation method to eliminate codebase entropy.
 **[Pruned]:** Removed unused `class_hierarchy` tracking from `DependencyGraph`.

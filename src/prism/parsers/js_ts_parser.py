@@ -26,7 +26,7 @@ ARROW_FN_REGEX = re.compile(
 
 # Class method definitions
 METHOD_DECL_REGEX = re.compile(
-    r'^\s*(?:public|private|protected|static\s+)*(async\s+)?([A-Za-z0-9_$]+)\s*\(([\s\S]*?)\)\s*(?::\s*[^{]+)?\{',
+    r'^\s*(?:(?:public|private|protected|static)\s+)*(async\s+)?([A-Za-z0-9_$]+)\s*\(([\s\S]*?)\)\s*(?::\s*[^{]+)?\{',
     re.MULTILINE,
 )
 
@@ -293,6 +293,7 @@ def parse_js_ts_file(file_path: str, code: str) -> ParsedFile:
                 "import",
                 "require",
                 "typeof",
+                "async",
             ):
                 continue
 

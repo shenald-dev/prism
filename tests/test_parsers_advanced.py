@@ -123,3 +123,67 @@ class DatabaseClient:
     assert db_cls.required_params == ["host"]
     assert db_cls.min_required_params == 1
 
+
+def test_ts_class_methods_with_visibility_modifiers():
+    code = """
+export class PaymentProcessor {
+    public charge(amount: number): boolean { return true; }
+    private validate(card: string): boolean { return true; }
+    protected log(msg: string): void {}
+    static ping(): boolean { return true; }
+    public async processRefund(txId: string): Promise<boolean> { return true; }
+    private async verifyUser(userId: string): Promise<boolean> { return true; }
+    protected static cleanup(): void {}
+}
+"""
+    parsed = parse_js_ts_file("payment.ts", code)
+    syms = {s.name: s for s in parsed.symbols}
+
+    assert "charge" in syms
+    assert syms["charge"].kind == "method"
+    assert syms["charge"].params == ["amount"]
+    assert syms["charge"].min_required_params == 1
+    assert syms["charge"].is_async is False
+
+    assert "validate" in syms
+    assert syms["validate"].kind == "method"
+    assert syms["validate"].params == ["card"]
+    assert syms["validate"].min_required_params == 1
+
+    assert "log" in syms
+    assert syms["log"].kind == "method"
+    assert syms["log"].params == ["msg"]
+
+    assert "ping" in syms
+    assert syms["ping"].kind == "method"
+
+    assert "processRefund" in syms
+    assert syms["processRefund"].kind == "method"
+    assert syms["processRefund"].is_async is True
+
+    assert "verifyUser" in syms
+    assert syms["verifyUser"].kind == "method"
+    assert syms["verifyUser"].is_async is True
+
+    assert "cleanup" in syms
+    assert syms["cleanup"].kind == "method"
+
+
+def test_async_arrow_function_not_creating_async_callsite():
+    code = """
+export const fetchData = async (url: string, timeout: number = 1000) => {
+    return url;
+};
+
+const sendPayload = async (payload: object) => {
+    return true;
+};
+"""
+    parsed = parse_js_ts_file("api.ts", code)
+    callee_names = [c.callee_name for c in parsed.call_sites]
+    assert "async" not in callee_names
+    assert len(parsed.symbols) == 2
+    assert all(s.kind == "async_function" for s in parsed.symbols)
+    assert all(s.is_async is True for s in parsed.symbols)
+
+

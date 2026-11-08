@@ -22,6 +22,10 @@ class CallerNode:
     is_test: bool = False
     children: List["CallerNode"] = field(default_factory=list)
 
+    @property
+    def identifier(self) -> str:
+        return self.caller_symbol
+
     def to_dict(self):
         return {
             "caller_symbol": self.caller_symbol,
@@ -67,7 +71,7 @@ class DependencyGraph:
         if isinstance(target, Symbol):
             # Prioritize matching file/module if available
             scoped_calls = []
-            target_file_stem = target.file_path.split("/")[-1].split(".")[0]
+            target_file_stem = target.file_path.replace("\\", "/").split("/")[-1].split(".")[0]
             for call in calls:
                 if call.callee_module:
                     # Check if callee_module matches file path or module name

@@ -119,3 +119,15 @@ def test_graph_transitive_callers_scoping_fix():
     # Should only return A, since B calls the identically named function in a different module
     assert len(caller_symbols) == 1
     assert "a.py::A" in caller_symbols
+
+
+def test_graph_direct_callers_windows_backslash_path():
+    graph = DependencyGraph()
+    sym_win = Symbol(name="calc", kind="function", file_path="math\\calc.ts", line_number=1, end_line_number=5)
+    graph.register_symbol(sym_win)
+    graph.add_call_site(CallSite(caller_name="run", callee_name="calc", file_path="app.ts", line_number=5, callee_module="./calc"))
+
+    callers = graph.get_direct_callers(sym_win)
+    assert len(callers) == 1
+    assert callers[0].caller_name == "run"
+

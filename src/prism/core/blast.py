@@ -49,7 +49,11 @@ class BlastRadiusReport:
 
     @property
     def transitive_callers_count(self) -> int:
-        return max(0, len(self.all_affected_functions) - self.modified_symbols_count - self.direct_callers_count)
+        direct_callers_unique = set()
+        for sb in self.symbol_blasts:
+            for caller_sym in sb.blast_tree:
+                direct_callers_unique.add(caller_sym.identifier)
+        return max(0, len(self.all_affected_functions) - self.modified_symbols_count - len(direct_callers_unique))
 
     def to_dict(self) -> Dict[str, Any]:
         result = {
@@ -196,7 +200,11 @@ def compute_blast_radius(
     # Compute Impact Score (0 - 100)
     raw_score = 0
     direct_callers_count = sum(len(sb.blast_tree) for sb in symbol_blasts)
-    transitive_callers_count = max(0, len(all_affected_functions) - len(symbol_blasts) - direct_callers_count)
+    direct_callers_unique = set()
+    for sb in symbol_blasts:
+        for caller_sym in sb.blast_tree:
+            direct_callers_unique.add(caller_sym.identifier)
+    transitive_callers_count = max(0, len(all_affected_functions) - len(symbol_blasts) - len(direct_callers_unique))
 
     # Direct callers: +6 pts each
     raw_score += direct_callers_count * 6
