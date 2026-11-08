@@ -29,17 +29,32 @@ class PrismConfig:
     def from_dict(cls, data: Dict[str, Any]) -> "PrismConfig":
         config = cls()
         if "max_depth" in data:
-            config.max_depth = int(data["max_depth"])
+            try:
+                config.max_depth = int(data["max_depth"])
+            except (ValueError, TypeError):
+                pass
         if "strict" in data:
-            config.strict = bool(data["strict"])
+            try:
+                config.strict = bool(data["strict"])
+            except (ValueError, TypeError):
+                pass
         if "fail_on" in data:
-            config.fail_on = str(data["fail_on"]).upper()
+            try:
+                config.fail_on = str(data["fail_on"]).upper()
+            except (ValueError, TypeError):
+                pass
         if "ignore_symbols" in data and isinstance(data["ignore_symbols"], list):
             config.ignore_symbols = [str(s) for s in data["ignore_symbols"]]
         if "include_tests" in data:
-            config.include_tests = bool(data["include_tests"])
+            try:
+                config.include_tests = bool(data["include_tests"])
+            except (ValueError, TypeError):
+                pass
         if "default_format" in data:
-            config.default_format = str(data["default_format"]).lower()
+            try:
+                config.default_format = str(data["default_format"]).lower()
+            except (ValueError, TypeError):
+                pass
         return config
 
 

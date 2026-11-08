@@ -75,3 +75,15 @@ def test_simple_toml_fallback_parser():
     assert res.get("strict") is True
     assert res.get("format") == "sarif"
     assert res.get("ignore") == ["foo", "bar"]
+
+
+def test_prism_config_robustness():
+    data = {
+        "max_depth": "invalid",
+        "strict": True,
+        "fail_on": 123,
+    }
+    cfg = PrismConfig.from_dict(data)
+    assert cfg.max_depth == 5
+    assert cfg.strict is True
+    assert cfg.fail_on == "123"
