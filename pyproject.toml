@@ -4,6 +4,9 @@ version = "2.0.0"
 description = "💎 Real-time topological blast radius and contract analysis for AI-generated code. Know what will break before you commit."
 readme = "README.md"
 authors = [
+    { name = "Shenal Diluksha", email = "shenald@users.noreply.github.com" }
+]
+maintainers = [
     { name = "shenald-dev", email = "shenald@users.noreply.github.com" }
 ]
 license = { text = "MIT" }
@@ -37,6 +40,13 @@ dev = [
 
 [project.scripts]
 prism = "prism.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/shenald-dev/prism"
+Documentation = "https://github.com/shenald-dev/prism#readme"
+Repository = "https://github.com/shenald-dev/prism"
+Issues = "https://github.com/shenald-dev/prism/issues"
+Changelog = "https://github.com/shenald-dev/prism/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["setuptools>=61.0"]

@@ -13,6 +13,7 @@
 
 *Know what the AI just broke across your entire repository before you commit.*
 
+[![PyPI version](https://img.shields.io/pypi/v/prism-radar.svg?color=00d4ff&style=flat-square)](https://pypi.org/project/prism-radar/)
 [![GitHub Release](https://img.shields.io/github/v/release/shenald-dev/prism?color=00d4ff&style=flat-square&logo=github)](https://github.com/shenald-dev/prism/releases)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg?style=flat-square)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg?style=flat-square)](LICENSE)
@@ -150,24 +151,18 @@ graph TD
 
 ### Installation
 
-Install directly via pip from GitHub:
+Install directly via `pip`:
 
 ```bash
-pip install "git+https://github.com/shenald-dev/prism.git"
-```
-
-Or install the pre-built wheel directly from the [latest GitHub Release](https://github.com/shenald-dev/prism/releases/latest):
-
-```bash
-pip install https://github.com/shenald-dev/prism/releases/download/v2.0.0/prism_radar-2.0.0-py3-none-any.whl
+pip install prism-radar
 ```
 
 Or run via `pipx` / `uv`:
 
 ```bash
-pipx install "git+https://github.com/shenald-dev/prism.git"
+pipx install prism-radar
 # or
-uv tool install "git+https://github.com/shenald-dev/prism.git"
+uv tool install prism-radar
 ```
 
 ---
