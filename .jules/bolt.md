@@ -17,3 +17,7 @@
 ## 2026-11-06 — Command Injection & Spacing fix for Test Runner
 - **Learning:** Using `.split()` to parse test execution commands dynamically constructed with Python's space-delimited string interpolation opens up shell execution vulnerabilities when dealing with filenames that contain spaces, leading to incorrect command tokenization or execution failures.
 - **Action:** Test runner outputs like `recommended_command` must be strictly constructed and passed as a `List[str]` directly into `subprocess.run()`, completely avoiding intermediary `.split()` operations.
+
+## 2026-11-06 — Config parsing robustness
+- **Learning:** Unhandled ValueError when parsing specific config values in `from_dict` aborted all config loading.
+- **Action:** Enclose each config cast in try-except to gracefully fall back to defaults for invalid types.
