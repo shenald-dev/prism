@@ -15,7 +15,6 @@ class Symbol:
     end_line_number: int
     params: List[str] = field(default_factory=list)
     posonly_params: List[str] = field(default_factory=list)
-    positional_params: List[str] = field(default_factory=list)
     kwonly_params: List[str] = field(default_factory=list)
     required_params: List[str] = field(default_factory=list)
     min_required_params: int = 0

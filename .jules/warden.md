@@ -4,3 +4,4 @@
 - **Deferred / Blocked:** None.
 - **Entropy Pruned:** Removed unused `max_impact_score` config property and parsing logic, and removed unused `get_centrality` method from `DependencyGraph` (-10 lines).
 - **Entropy Pruned:** Removed unused `class_hierarchy` property and population logic from `DependencyGraph`.
+- **Entropy Pruned:** Removed completely unused `positional_params` field from `Symbol` class, updated parsers and calculated it locally in `contracts.py`.
